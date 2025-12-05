@@ -1,0 +1,3637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vault Messenger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="icon" type="image/png" href="/static/vault_logo.png">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --sidebar-bg: rgba(15, 23, 42, 0.92);
+            --chat-bg: #0f172a;
+            --text-main: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --danger: #f87171;
+            --success: #34d399;
+            --warning: #facc15;
+            --radius-main: 28px;
+            --radius-elem: 14px;
+        }
+
+        body.theme-light {
+            --primary-gradient: linear-gradient(135deg, #dfe9f3 0%, #ffffff 100%);
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+            --sidebar-bg: #ffffff;
+            --chat-bg: #f3f4f6;
+            --text-main: #111827;
+            --text-secondary: #4b5563;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #eab308;
+        }
+
+        body.theme-dark {
+            /* значения по умолчанию уже заданы, класс нужен для явного состояния */
+            color: var(--text-main);
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-image: var(--primary-gradient);
+            background-size: cover;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- ЭКРАН ВХОДА --- */
+        #auth-view {
+            padding: 42px 36px;
+            background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 55%),
+                        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.18), transparent 55%),
+                        rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(26px);
+            border-radius: var(--radius-main);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+            text-align: center;
+            width: 100%;
+            max-width: 420px;
+            animation: fadeIn 0.5s ease-out;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        #auth-view h2 { margin-bottom: 30px; color: #e5e7eb; }
+        
+        input[type="text"], input[type="password"], textarea, input[type="number"] {
+            width: 100%;
+            padding: 14px 18px;
+            margin: 8px 0;
+            border-radius: var(--radius-elem);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.8);
+            font-size: 1rem;
+            transition: 0.3s;
+            font-family: inherit;
+            color: var(--text-main);
+        }
+        input:focus, textarea:focus {
+            border-color: var(--accent-color);
+            background: rgba(15, 23, 42, 0.95);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.65);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 15px;
+            border: none;
+            border-radius: var(--radius-elem);
+            background: var(--accent-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s ease;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
+        }
+        button:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 14px 30px rgba(79, 70, 229, 0.65); }
+        #register-button { background: transparent; color: var(--text-secondary); margin-top: 5px; box-shadow: none; }
+        #register-button:hover { color: var(--accent-color); background: rgba(99, 102, 241, 0.12); transform: none; box-shadow: none; }
+
+        /* --- ГЛАВНОЕ ОКНО --- */
+        #app {
+            display: flex;
+            width: 100%;
+            max-width: none;
+            height: 100vh;
+            background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.16), transparent 60%),
+                        rgba(15, 23, 42, 0.96);
+            border-radius: 0;
+            box-shadow: 0 30px 65px -18px rgba(15, 23, 42, 0.95);
+            overflow: hidden;
+            animation: fadeIn 0.6s ease-out;
+            position: relative;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        /* --- БОКОВОЕ МЕНЮ (SIDEBAR) --- */
+        #sidebar {
+            width: 350px;
+            min-width: 350px; 
+            background: var(--sidebar-bg);
+            border-right: 1px solid rgba(30, 64, 175, 0.5);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+
+        .tabs {
+            display: flex;
+            padding: 14px 14px 10px;
+            background: transparent;
+            gap: 10px;
+            border-bottom: 1px solid rgba(30, 64, 175, 0.6);
+        }
+        .tab-button {
+            background: transparent;
+            color: #6b7280;
+            padding: 10px;
+            flex: 1;
+            font-size: 1.1rem;
+            box-shadow: none;
+            margin: 0;
+        }
+        .tab-button:hover { background: rgba(30, 64, 175, 0.35); color: #e5e7eb; transform: none; }
+        .tab-button.active { background: rgba(37, 99, 235, 0.85); color: #e5e7eb; }
+        .tab-button:last-child:hover { color: var(--danger); background: rgba(229, 62, 62, 0.1); transform: none; }
+        .admin-tab-button { color: #d69e2e !important; }
+        
+        .delete-message-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin-left: 10px;
+    opacity: 0.5;
+    font-size: 0.8rem;
+    transition: opacity 0.2s;
+}
+
+.delete-message-btn:hover {
+    opacity: 1;
+    color: var(--danger);
+}
+
+.gift-message .delete-message-btn {
+    color: rgba(255,255,255,0.8);
+}
+
+.gift-message .delete-message-btn:hover {
+    color: white;
+    background: rgba(229, 62, 62, 0.3);
+}
+
+        .coins-display {
+            background: radial-gradient(circle at top left, #fbbf24, #f97316);
+            color: #111827;
+            padding: 7px 13px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 10px 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .chat-list, .search-list {
+            list-style: none;
+            padding: 10px;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .chat-item, .user-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 5px;
+            border-radius: var(--radius-elem);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .chat-item:hover, .user-item:hover { background-color: #f7fafc; transform: translateX(3px); }
+        .chat-item.active { background-color: var(--accent-color); color: white; }
+        .chat-item.active .name { color: white; }
+        .chat-item.active .last-message { color: rgba(255,255,255,0.8); }
+
+        .avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+            background: #cbd5e0;
+            flex-shrink: 0;
+        }
+        .details { flex-grow: 1; overflow: hidden; }
+        .name { font-weight: 600; margin-bottom: 2px; }
+        .last-message { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- ПОИСК И АДМИНКА --- */
+        #search-tab, #admin-tab, #settings-tab { padding: 20px; background: transparent; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        #admin-gifts-list { max-height: 260px; overflow-y: auto; margin-top:10px; }
+        
+        .search-bar {
+            padding: 12px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 15px;
+            width: 100%;
+            background: #f8fafc;
+        }
+
+        /* --- ЧАТ (MAIN CONTENT) --- */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 55%),
+                        radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.2), transparent 55%),
+                        var(--chat-bg);
+            position: relative;
+            min-width: 0;
+        }
+        
+        
+        .header {
+            padding: 14px 22px;
+            background: linear-gradient(90deg, rgba(15, 23, 42, 0.96), rgba(30, 64, 175, 0.85));
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(30, 64, 175, 0.8);
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            z-index: 5;
+            height: 70px;
+        }
+        
+        .back-button {
+            display: none;
+            margin-right: 15px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        /* КОНТЕЙНЕР СООБЩЕНИЙ */
+        #messages-container {
+            flex-grow: 1;
+            padding: 20px 22px 16px;
+            overflow-y: auto;
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
+        }
+        
+        .message-row { display: flex; align-items: flex-end; margin-bottom: 5px; animation: fadeIn 0.3s; }
+        .message-row .avatar { width: 32px; height: 32px; margin-bottom: 5px; }
+        
+        .message {
+            padding: 12px 16px;
+            max-width: 70%;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            /* Перенос по словам, а не разрезая слово */
+            word-break: normal;
+            overflow-wrap: normal;
+        }
+        
+        .received { align-self: flex-start; }
+        .received .message { background: rgba(15, 23, 42, 0.96); border-radius: 18px 18px 18px 2px; margin-left: 5px; box-shadow: 0 8px 16px rgba(15,23,42,0.65); color:#e5e7eb; }
+        .received .avatar { margin-right: 5px; }
+
+        .sent { align-self: flex-end; justify-content: flex-end; }
+        .sent .message { background: linear-gradient(135deg, #4f46e5, #06b6d4); color: white; border-radius: 18px 18px 2px 18px; margin-right: 5px; box-shadow: 0 10px 20px rgba(56, 189, 248, 0.5); }
+        .sent .avatar { margin-left: 5px; }
+
+        .message-info { display: block; margin-top: 4px; font-size: 0.7rem; opacity: 0.7; text-align: right; }
+
+        .gift-row {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .gift-row .avatar {
+            display: none;
+        }
+
+        .gift-message {
+            /* фон и форма как у обычного сообщения; здесь усиливаем размер и центрируем */
+            text-align: center;
+            padding: 18px 24px !important;
+            font-size: 1.05rem;
+            max-width: 80%;
+        }
+
+        .gift-icon {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .gift-img-content {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            display: inline-block;
+        }
+        
+        .gift-emoji-content {
+            font-size: 2rem;
+            display: inline-block;
+        }
+
+        /* Торжественное появление подарка */
+        .gift-celebration-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 200;
+            animation: fadeOutCelebration 1.8s ease-out forwards;
+        }
+
+        .gift-celebration-card {
+            background: radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 70%),
+                        linear-gradient(135deg, #f97316, #ec4899);
+            padding: 18px 22px;
+            border-radius: 20px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+            text-align: center;
+            color: #f9fafb;
+            transform: scale(0.8);
+            animation: popInCelebration 0.4s ease-out forwards;
+        }
+
+        .gift-celebration-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .gift-celebration-gift {
+            font-size: 2.4rem;
+            margin-bottom: 4px;
+        }
+
+        .gift-celebration-text {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .gift-firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #facc15;
+            box-shadow: 0 0 12px rgba(250,204,21,0.9);
+            animation: fireworkBurst 0.9s ease-out forwards;
+        }
+
+        @keyframes popInCelebration {
+            from { transform: scale(0.7); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeOutCelebration {
+            0%,70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes fireworkBurst {
+            from { transform: scale(0.2); opacity: 1; }
+            to { transform: scale(2.8); opacity: 0; }
+        }
+
+        #input-area {
+            padding: 14px 18px 18px;
+            background: rgba(15, 23, 42, 0.98);
+            border-top: 1px solid rgba(30, 64, 175, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #message-input { margin: 0; border-radius: 999px; padding-left: 20px; flex: 1; background: rgba(15,23,42,0.9); color: var(--text-main); }
+        #call-button { width: 46px; height: 46px; border-radius: 999px; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: #10b981; box-shadow: 0 10px 20px rgba(16,185,129,0.45); }
+        #call-button:hover { background: #059669; transform: translateY(-1px); }
+        #send-button { width: 46px; height: 46px; border-radius: 999px; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(56,189,248,0.5); }
+        #gift-button { width: 46px; height: 46px; border-radius: 999px; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--warning); box-shadow: 0 10px 20px rgba(250,204,21,0.45); }
+        #gift-button:hover { background: #fbbf24; }
+        
+        /* Адаптивность для модального окна звонка */
+        @media (max-width: 768px) {
+            #call-modal > div > div:first-child {
+                grid-template-columns: 1fr !important;
+            }
+            #call-modal video {
+                max-width: 100% !important;
+            }
+        }
+
+        /* --- АДМИНКА --- */
+        #admin-user-list { overflow-y: auto; flex-grow: 1; }
+        .admin-user-card {
+            background: #f8fafc;
+            border-left: 4px solid #d69e2e;
+            padding: 15px;
+            border-radius: var(--radius-elem);
+            margin-bottom: 10px;
+        }
+        .admin-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .admin-actions button { width: auto; margin: 0; padding: 6px 12px; font-size: 0.85rem; box-shadow: none; }
+        .admin-save-btn { background: var(--success); }
+        .admin-ban-btn { background: var(--danger); }
+        .admin-unban-btn { background: #3182ce; }
+        .admin-nft-btn { background: #805ad5; }
+        
+        /* Стили для МОДАЛЬНОГО ОКНА ПРОФИЛЯ */
+        #profile-modal, #gifts-modal {
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0, 0, 0, 0.5); 
+            z-index: 100; 
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+        }
+        #profile-modal > div, #gifts-modal > div {
+            background: white; 
+            padding: 25px; 
+            border-radius: var(--radius-main); 
+            max-width: 380px; 
+            width: 90%; 
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); 
+            position: relative;
+        }
+
+        .gifts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .gift-item {
+            background: #f8fafc;
+            border-radius: var(--radius-elem);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .gift-item:hover {
+            background: #edf2f7;
+            border-color: var(--warning);
+        }
+
+        .gift-item.selected {
+            background: #fffaf0;
+            border-color: var(--warning);
+        }
+
+        .gift-icon-large {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        
+        .gift-icon-large img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        
+        .gift-icon-large span {
+            font-size: 2.5rem;
+        }
+
+        .gift-price {
+            background: var(--warning);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* --- NFT ПОДАРКИ И МАРКЕТ --- */
+
+        .nft-card {
+            min-width: 140px;
+            max-width: 180px;
+            border-radius: 18px;
+            padding: 10px 12px;
+            color: #1a202c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .nft-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+        }
+
+        .nft-image-wrapper {
+            width: 88px;
+            height: 88px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .nft-image-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .nft-image-wrapper span {
+            font-size: 2.2rem;
+        }
+
+        .nft-meta {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #2d3748;
+        }
+
+        .nft-market-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .nft-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            justify-content: center;
+        }
+
+        .nft-actions button {
+            width: auto;
+            margin: 0;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            box-shadow: none;
+        }
+
+        /* --- АДАПТИВНОСТЬ (MOBILE) --- */
+        @media (max-width: 850px) {
+            #app { width: 100%; height: 100vh; border-radius: 0; }
+            #sidebar { width: 100%; position: absolute; height: 100%; top: 0; left: 0; }
+            #main-content { width: 100%; position: absolute; height: 100%; top: 0; left: 0; transform: translateX(100%); transition: transform 0.3s ease; z-index: 20; }
+            
+            body.chat-active #main-content { transform: translateX(0); }
+            body.chat-active #sidebar { transform: translateX(-20%); opacity: 0; pointer-events: none; }
+            
+            .back-button { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-view" style="display: none;">
+        <h2 style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+            <img src="/static/vault_logo.png" alt="Vault Logo" style="width:140px; height:auto; filter: drop-shadow(0 12px 28px rgba(0,0,0,0.7));">
+            <span style="letter-spacing:0.18em; font-size:0.95rem; text-transform:uppercase; color:#9ca3af;">VAULT MESSENGER</span>
+        </h2>
+        <input type="text" id="auth-username" placeholder="Логин (ID)">
+        <input type="password" id="auth-password" placeholder="Пароль">
+        <input type="text" id="auth-display-name" placeholder="Ваше имя" style="display:none;">
+        
+        <button id="login-button" onclick="handleLogin()">Войти</button>
+        <button id="register-button" onclick="showRegister()">Создать аккаунт</button>
+        <p id="auth-message"></p>
+    </div>
+
+    <div id="app" style="display: none;">
+        <div id="sidebar">
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('chats')" title="Чаты"><i class="fas fa-comments"></i></button>
+                <button class="tab-button" onclick="showTab('search')" title="Поиск"><i class="fas fa-search"></i></button>
+                <button class="tab-button" onclick="showTab('profile')" title="Профиль"><i class="fas fa-user-circle"></i></button>
+                <button class="tab-button" onclick="showTab('market')" title="Маркет NFT"><i class="fas fa-store"></i></button>
+                <button class="tab-button" onclick="showTab('settings')" title="Настройки"><i class="fas fa-cog"></i></button>
+                <button id="admin-tab-button" class="tab-button admin-tab-button hidden" onclick="showTab('admin')" title="Админ"><i class="fas fa-user-shield"></i></button>
+                <button class="tab-button" onclick="logout()" title="Выход"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+            <div style="padding: 0 15px 10px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="coins-display">
+                        <i class="fas fa-coins"></i>
+                        <span id="coins-count">0</span>
+                    </div>
+                </div>
+                <button onclick="openCreateRoomModal()" style="background:#1f2937; color:#e5e7eb; border:none; padding:7px 10px; border-radius:999px; font-size:0.78rem; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Создать канал</span>
+                </button>
+            </div>
+            
+            <ul id="chats-tab" class="chat-list"></ul>
+            
+            <div id="search-tab" class="hidden">
+                <input type="text" class="search-bar" id="search-input" placeholder="Поиск @ID..." onkeyup="handleSearch()">
+                <ul id="search-list" class="search-list"></ul>
+            </div>
+
+            <div id="market-tab" class="hidden" style="padding: 20px; background: transparent; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <div>
+                        <h3 style="margin:0; font-size:1.1rem;">NFT Маркет</h3>
+                        <p style="margin:2px 0 0; font-size: 0.8rem; color:#9ca3af;">
+                            Коллекции подарков, выставленные пользователями.
+                        </p>
+                    </div>
+                </div>
+                <div id="market-list" class="nft-market-grid" style="flex-grow:1; overflow-y:auto;"></div>
+            </div>
+
+            <div id="settings-tab" class="hidden">
+                <h3 style="margin-top:0; margin-bottom: 10px;">Настройки</h3>
+                <p style="margin-top:0; margin-bottom: 12px; font-size:0.85rem; color:#9ca3af;">
+                    Личные параметры интерфейса. Сохраняются только в этом браузере.
+                </p>
+                <div style="display:flex; flex-direction:column; gap:10px; max-width:360px;">
+                    <label style="display:flex; align-items:center; justify-content:space-between; background:rgba(15,23,42,0.8); padding:10px 14px; border-radius:12px;">
+                        <span style="font-size:0.9rem;">Тёмная тема</span>
+                        <input type="checkbox" id="setting-theme">
+                    </label>
+                    <label style="display:flex; align-items:center; justify-content:space-between; background:rgba(15,23,42,0.8); padding:10px 14px; border-radius:12px;">
+                        <span style="font-size:0.9rem;">Звуки сообщений</span>
+                        <input type="checkbox" id="setting-sounds">
+                    </label>
+                    <label style="display:flex; align-items:center; justify-content:space-between; background:rgba(15,23,42,0.8); padding:10px 14px; border-radius:12px;">
+                        <span style="font-size:0.9rem;">Компактный режим чата</span>
+                        <input type="checkbox" id="setting-compact">
+                    </label>
+                    <label style="display:flex; align-items:center; justify-content:space-between; background:rgba(15,23,42,0.8); padding:10px 14px; border-radius:12px;">
+                        <span style="font-size:0.9rem;">Показывать статус «онлайн»</span>
+                        <input type="checkbox" id="setting-status" checked>
+                    </label>
+                </div>
+            </div>
+
+            <div id="profile-tab" class="profile-view hidden">
+                <img id="profile-avatar" class="avatar" src="" alt="Аватар">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <label for="avatar-input" style="cursor:pointer; color:var(--accent-color); font-weight:600;">
+                        <i class="fas fa-camera"></i> Сменить фото
+                    </label>
+                    <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
+                </div>
+                <h3 id="profile-username-display" style="text-align:center; color:#718096; margin-top:0;"></h3>
+                <div class="coins-display" style="justify-content:center; margin-bottom:15px;">
+                    <i class="fas fa-coins"></i>
+                    <span id="profile-coins-count">0</span> монет
+                </div>
+                
+                <button onclick="openInventory()" style="background: #3182ce; margin-bottom: 15px;">
+                    <i class="fas fa-box"></i> Мой инвентарь
+                </button>
+                
+                <label>Имя:</label>
+                <input type="text" id="edit-display-name">
+                <label>О себе:</label>
+                <textarea id="edit-bio" rows="3"></textarea>
+                <button onclick="saveProfileChanges()"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+            
+            <div id="admin-tab" class="hidden">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <h3 style="margin:0;">Управление</h3>
+                    <small style="color:#718096">Всего пользователей: <span id="admin-users-count">0</span></small>
+                </div>
+                
+                <button onclick="openCreateGiftModal()" style="background: #d69e2e; margin-bottom: 15px; width: 100%;">
+                    <i class="fas fa-plus"></i> Создать подарок
+                </button>
+
+                <button onclick="openAdminGifts()" style="background: #805ad5; margin-bottom: 15px; width: 100%;">
+                    <i class="fas fa-gifts"></i> Мои подарки
+                </button>
+                
+                <input type="text" class="search-bar" id="admin-search-input" placeholder="Поиск юзера по ID или имени..." onkeyup="filterAdminUsers()">
+                
+                <div id="admin-user-list">
+                    <p style="text-align: center; color: #888;">Загрузка...</p>
+                </div>
+
+                <hr style="margin:16px 0; border:none; border-top:1px solid rgba(148,163,184,0.3);" />
+
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <h3 style="margin:0; font-size:1rem;">Мои каналы</h3>
+                </div>
+                <div id="admin-rooms-list" style="max-height:180px; overflow-y:auto;">
+                    <p style="text-align:center; color:#888;">Загрузка...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div class="header">
+                <i class="fas fa-arrow-left back-button" onclick="closeChatMobile()"></i>
+                
+                <div id="companion-profile-link" style="cursor:pointer; display:none; flex-grow:1; display:flex; align-items:center;" onclick="if(activeChatPartnerId) fetchCompanionProfile(activeChatPartnerId)">
+                    <img id="companion-avatar" class="avatar" src="" alt="Avatar" style="margin-right: 15px;">
+                    <div>
+                        <div id="companion-displayname" style="font-weight: 600; font-size: 1rem;">Имя</div>
+                        <div id="companion-username" style="font-weight: 400; font-size: 0.85rem; color: var(--text-secondary);">
+                            @username · <span id="companion-status">оффлайн</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="chat-start-title" style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+                    <img src="/static/vault_logo.png" alt="Vault Logo" style="width:42px; height:auto; opacity:0.95;">
+                    <span style="letter-spacing:0.16em; font-size:0.9rem; text-transform:uppercase;">VAULT</span>
+                    <span style="font-weight:400; font-size:0.9rem; color:var(--text-secondary);">Messenger</span>
+                </div>
+            </div>
+
+            <div id="messages-container">
+                <div id="chat-start-message" style="margin-top:auto; text-align:center; color:#a0aec0; padding-bottom: 50px;">
+                    <i class="fas fa-paper-plane" style="font-size:3rem; margin-bottom:15px; opacity:0.3;"></i>
+                    <p>Выберите чат, чтобы начать общение</p>
+                </div>
+            </div>
+
+            <div id="input-area" class="hidden">
+                <button id="call-button" onclick="startCall()" style="width:46px; height:46px; border-radius:999px; margin:0; padding:0; display:flex; align-items:center; justify-content:center; background:#10b981; box-shadow:0 10px 20px rgba(16,185,129,0.45);" title="Позвонить">
+                    <i class="fas fa-phone"></i>
+                </button>
+                <input type="text" id="message-input" placeholder="Сообщение...">
+                <button id="send-button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                <button id="gift-button" onclick="openGiftsModal()"><i class="fas fa-gift"></i></button>
+            </div>
+        </div>
+        
+        <div id="profile-modal">
+            <div>
+                <button id="close-profile-modal" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer;"><i class="fas fa-times"></i></button>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <img id="modal-avatar" class="avatar" src="" alt="Avatar" style="width: 100px; height: 100px; margin-bottom: 20px;">
+                    <h3 id="modal-displayname" style="font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; text-align: center;"></h3>
+                    <p id="modal-username" style="color: var(--text-secondary); margin-bottom: 25px; font-size: 1rem; text-align: center;">@</p>
+                    
+                    <div style="width: 100%; background: #f8fafc; padding: 15px; border-radius: var(--radius-elem); text-align: left;">
+                        <p style="font-weight: 600; margin-bottom: 5px; color: var(--text-main);">О себе:</p>
+                        <p id="modal-bio" style="color: var(--text-secondary); white-space: pre-wrap; font-size: 0.95rem;">Информация отсутствует.</p>
+                    </div>
+                    
+                    <div id="modal-profile-gifts" style="width: 100%; margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gifts-modal">
+            <div style="max-width: 450px;">
+                <button id="close-gifts-modal" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer;"><i class="fas fa-times"></i></button>
+                <h3 style="text-align: center; margin-bottom: 20px;">Выберите подарок</h3>
+                <p style="text-align: center; margin-bottom: 15px;">Ваш баланс: <span id="gifts-balance" class="coins-display" style="display: inline-flex; padding: 3px 8px;">0 монет</span></p>
+                
+                <div id="gifts-container" class="gifts-grid">
+                    <!-- Подарки будут загружены здесь -->
+                </div>
+                
+                <button id="send-gift-button" onclick="sendGift()" style="margin-top: 20px;" disabled>Отправить подарок</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно видеозвонка -->
+        <div id="call-modal" style="display:none !important; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:300; align-items:center; justify-content:center;">
+            <div style="background:#0f172a; border-radius:20px; padding:20px; max-width:800px; width:95%; position:relative;">
+                <button id="close-call-modal" onclick="endCall()" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; color:#e5e7eb; cursor:pointer; z-index:10;">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+                    <div style="background:#1e293b; border-radius:12px; padding:15px; text-align:center;">
+                        <div style="font-size:0.9rem; color:#9ca3af; margin-bottom:8px;">Вы</div>
+                        <video id="local-video" autoplay muted playsinline style="width:100%; max-width:300px; border-radius:8px; background:#000;"></video>
+                        <div style="margin-top:8px;">
+                            <button onclick="toggleMute()" id="mute-btn" style="background:#4f46e5; color:white; border:none; padding:8px 15px; border-radius:8px; margin:0 5px; cursor:pointer;">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button onclick="toggleVideo()" id="video-btn" style="background:#4f46e5; color:white; border:none; padding:8px 15px; border-radius:8px; margin:0 5px; cursor:pointer;">
+                                <i class="fas fa-video"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#1e293b; border-radius:12px; padding:15px; text-align:center;">
+                        <div style="font-size:0.9rem; color:#9ca3af; margin-bottom:8px;" id="remote-user-name">Собеседник</div>
+                        <video id="remote-video" autoplay playsinline webkit-playsinline style="width:100%; max-width:300px; border-radius:8px; background:#000;"></video>
+                        <div id="call-status" style="margin-top:8px; color:#9ca3af; font-size:0.85rem;">Подключение...</div>
+                    </div>
+                </div>
+                
+                <div style="display:flex; justify-content:center; gap:15px;">
+                    <button onclick="endCall()" style="background:#ef4444; color:white; border:none; padding:12px 24px; border-radius:12px; font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-phone-slash"></i> Завершить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --------------------------------------
+    // JAVASCRIPT ЛОГИКА
+    // --------------------------------------
+    
+    const API_URL = ''; 
+    const GRAVATAR_BASE_URL = 'https://www.gravatar.com/avatar/';
+    const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="#cbd5e0"/><circle cx="50" cy="40" r="15" fill="#fff"/><circle cx="50" cy="80" r="25" fill="#fff"/></svg>';
+    
+    let currentUser = null;
+    let activeChatPartnerId = null;
+    let activeChatPartnerName = null;
+    let activeChatPartnerAvatarBase64 = null;
+    let activeChatPartnerEmailHash = null;
+    let pollingInterval;
+    let statusInterval;
+    let newAvatarBase64 = null; 
+    
+    let adminUsersCache = [];
+    let adminRoomsCache = [];
+    let giftsList = [];
+    let allGiftsMap = {}; // Карта всех подарков для отображения в чате
+    let selectedGiftId = null;
+    
+    let newGiftImageBase64 = null; // Для создания подарка
+
+    // NFT
+    let nftMarket = [];
+    let myNfts = [];
+    const messageSound = new Audio('/static/message-notification-sound-imassage-on-iphone.mp3');
+    messageSound.volume = 0.9;
+
+    // --- SETTINGS (localStorage) ---
+    function getSetting(key, defaultValue) {
+        try {
+            const raw = localStorage.getItem('vault_settings');
+            if (!raw) return defaultValue;
+            const obj = JSON.parse(raw);
+            return obj.hasOwnProperty(key) ? obj[key] : defaultValue;
+        } catch (e) {
+            return defaultValue;
+        }
+    }
+
+    function applyTheme() {
+        const theme = getSetting('theme', 'dark');
+        document.body.classList.remove('theme-dark', 'theme-light');
+        const cls = theme === 'light' ? 'theme-light' : 'theme-dark';
+        document.body.classList.add(cls);
+    }
+
+    function setSetting(key, value) {
+        try {
+            const raw = localStorage.getItem('vault_settings');
+            const obj = raw ? JSON.parse(raw) : {};
+            obj[key] = value;
+            localStorage.setItem('vault_settings', JSON.stringify(obj));
+        } catch (e) {}
+    }
+
+    function getNftBackground(variant) {
+        const backgrounds = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+            'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+            'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)',
+            'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)',
+        ];
+        const idx = (variant && variant > 0 ? variant - 1 : 0) % backgrounds.length;
+        return backgrounds[idx];
+    }
+
+    // --- UTILS ---
+    
+    function getGravatarUrl(hash, size = 80) { return `${GRAVATAR_BASE_URL}${hash}?s=${size}&d=identicon`; }
+    function getAvatarUrl(base64Data, emailHash, size = 80) {
+        if (base64Data && base64Data.startsWith('data:image')) return base64Data;
+        return getGravatarUrl(emailHash, size);
+    }
+    function setAuthMessage(msg, isError = false) {
+        const el = document.getElementById('auth-message');
+        el.innerText = msg;
+        el.style.color = isError ? '#e53e3e' : '#38a169';
+    }
+    function scrollToBottom() {
+        const container = document.getElementById('messages-container');
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 50);
+    }
+
+    function showGiftCelebration(giftName, giftImageUrl, fromUserId) {
+        const overlay = document.createElement('div');
+        overlay.className = 'gift-celebration-overlay';
+
+        const fireworkPositions = [
+            { top: '20%', left: '30%' },
+            { top: '18%', left: '70%' },
+            { top: '75%', left: '35%' },
+            { top: '78%', left: '65%' }
+        ];
+
+        overlay.innerHTML = `
+            <div class="gift-celebration-card">
+                <div class="gift-celebration-title">Подарок!</div>
+                <div class="gift-celebration-gift">
+                    ${renderGiftVisual(giftImageUrl || '🎁')}
+                </div>
+                <div class="gift-celebration-text">
+                    Вы получили "${giftName}" от @${fromUserId}
+                </div>
+            </div>
+        `;
+
+        fireworkPositions.forEach(pos => {
+            const fw = document.createElement('div');
+            fw.className = 'gift-firework';
+            fw.style.top = pos.top;
+            fw.style.left = pos.left;
+            overlay.appendChild(fw);
+        });
+
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.remove(), 1800);
+    }
+
+    async function updateCompanionStatus(userId) {
+        try {
+            const response = await fetch(`${API_URL}/api/status/${userId}`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                const span = document.getElementById('companion-status');
+                if (!span) return;
+                if (data.online) {
+                    span.textContent = 'онлайн';
+                    span.style.color = '#34d399';
+                } else if (data.last_seen) {
+                    let timeText = data.last_seen;
+                    try {
+                        const d = new Date(data.last_seen);
+                        if (!isNaN(d.getTime())) {
+                            timeText = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } catch (e) {}
+                    span.textContent = `был(а) в сети в ${timeText}`;
+                    span.style.color = 'var(--text-secondary)';
+                } else {
+                    span.textContent = 'оффлайн';
+                    span.style.color = 'var(--text-secondary)';
+                }
+            }
+        } catch (e) {
+            // тихо игнорируем
+        }
+    }
+
+    function previewAvatar(input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('profile-avatar').src = e.target.result;
+                newAvatarBase64 = e.target.result;
+            };
+            reader.readAsDataURL(file); 
+        }
+    }
+    
+    // Хелпер для сжатия изображения (для подарков)
+    function resizeImage(file, maxWidth, maxHeight) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                    } else {
+                        if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL(file.type));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // Хелпер для отображения визуала подарка (Картинка или Эмодзи)
+    function renderGiftVisual(source) {
+        if (!source) return '🎁';
+        // Если это URL или Base64
+        if (source.startsWith('http') || source.startsWith('data:image')) {
+            return `<img src="${source}" class="gift-img-content" alt="Gift">`;
+        }
+        // Иначе это эмодзи
+        return `<span class="gift-emoji-content">${source}</span>`;
+    }
+
+    function updateCoinsDisplay(coins) {
+        document.getElementById('coins-count').textContent = coins;
+        document.getElementById('profile-coins-count').textContent = coins;
+        document.getElementById('gifts-balance').innerHTML = `<i class="fas fa-coins"></i> ${coins}`;
+    }
+    
+    // --- AUTH ---
+
+    function showRegister() {
+        document.getElementById('login-button').style.display = 'none';
+        document.getElementById('register-button').onclick = handleRegister;
+        document.getElementById('register-button').innerText = 'Зарегистрироваться';
+        document.getElementById('auth-display-name').style.display = 'block';
+        setAuthMessage("");
+    }
+
+    async function handleRegister() {
+        const username = document.getElementById('auth-username').value;
+        const password = document.getElementById('auth-password').value;
+        const displayName = document.getElementById('auth-display-name').value;
+
+        try {
+            const response = await fetch(`${API_URL}/api/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, displayName })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setAuthMessage(data.message + ". Теперь войдите.");
+                document.getElementById('auth-display-name').style.display = 'none';
+                document.getElementById('login-button').style.display = 'block';
+                document.getElementById('register-button').innerText = 'Создать аккаунт';
+                document.getElementById('register-button').onclick = showRegister;
+            } else setAuthMessage(data.message, true);
+        } catch (e) { setAuthMessage("Ошибка сети", true); }
+    }
+
+    async function handleLogin() {
+        const username = document.getElementById('auth-username').value;
+        const password = document.getElementById('auth-password').value;
+        try {
+            const response = await fetch(`${API_URL}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                currentUser = data.user;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                initializeApp();
+            } else setAuthMessage(data.message, true);
+        } catch (e) { setAuthMessage("Ошибка сети", true); }
+    }
+
+    function logout() {
+        currentUser = null;
+        activeChatPartnerId = null;
+        clearInterval(pollingInterval);
+        if (window.callCheckInterval) clearInterval(window.callCheckInterval);
+        if (currentCallId) endCall();
+        localStorage.removeItem('vault_user');
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('auth-view').style.display = 'block';
+        document.getElementById('auth-username').value = '';
+        document.getElementById('auth-password').value = '';
+        setAuthMessage('');
+        document.body.classList.remove('chat-active');
+    }
+
+    // --- APP LOGIC ---
+    
+    async function initializeApp() {
+        document.getElementById('auth-view').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        
+        const adminButton = document.getElementById('admin-tab-button');
+        if (currentUser.role === 'admin') adminButton.classList.remove('hidden');
+        else adminButton.classList.add('hidden');
+
+        updateCoinsDisplay(currentUser.coins || 15);
+        showTab('chats');
+        
+        // Загружаем подарки сразу, чтобы кэш был готов для чата
+        await fetchAllGifts(); 
+        
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(() => {
+            if (activeChatPartnerId) renderMessages(activeChatPartnerId, false);
+            renderChatList();
+        }, 8000);
+
+        if (statusInterval) clearInterval(statusInterval);
+        statusInterval = setInterval(() => {
+            if (activeChatPartnerId && getSetting('status', true)) {
+                updateCompanionStatus(activeChatPartnerId);
+            }
+        }, 15000);
+
+        // Проверка входящих звонков каждые 2 секунды (только после авторизации)
+        // Очищаем предыдущий интервал если есть
+        if (window.callCheckInterval) {
+            clearInterval(window.callCheckInterval);
+            window.callCheckInterval = null;
+        }
+        // Запускаем проверку только если пользователь авторизован
+        if (currentUser && currentUser.id) {
+            window.callCheckInterval = setInterval(checkIncomingCalls, 2000);
+        }
+    }
+
+    function showTab(tabName) {
+        const tabs = ['chats', 'search', 'profile', 'admin', 'market', 'settings'];
+        if (tabName === 'admin' && currentUser.role !== 'admin') tabName = 'chats'; 
+
+        tabs.forEach(tab => {
+            const tabEl = document.getElementById(`${tab}-tab`);
+            const btnEl = document.querySelector(`.tab-button[onclick*="${tab}"]`);
+            if (tabEl) tabEl.classList.toggle('hidden', tab !== tabName);
+            if (btnEl) btnEl.classList.toggle('active', tab === tabName);
+        });
+        
+        if (tabName === 'profile') loadProfile();
+        if (tabName === 'chats') renderChatList();
+        if (tabName === 'admin') loadAdminUsers(); 
+        if (tabName === 'search') {
+            document.getElementById('search-input').value = ''; 
+            document.getElementById('search-list').innerHTML = '';
+        }
+        if (tabName === 'market') {
+            loadMarket();
+        }
+    }
+    
+    function closeChatMobile() {
+        document.body.classList.remove('chat-active');
+        activeChatPartnerId = null;
+        activeChatIsChannel = false;
+        activeChatRole = null;
+        
+        document.getElementById('chat-start-title').style.display = 'block';
+        document.getElementById('companion-profile-link').style.display = 'none';
+        
+        document.getElementById('input-area').classList.add('hidden');
+        document.getElementById('gift-button').style.display = 'flex';
+        document.getElementById('call-button').style.display = 'flex';
+    }
+
+    // --- CHATS & MESSAGES ---
+
+    async function renderChatList() {
+        const chatList = document.getElementById('chats-tab');
+        try {
+            const response = await fetch(`${API_URL}/api/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'chats', user_id: currentUser.id })
+            });
+            const data = await response.json();
+            
+            let htmlContent = '';
+            if (data.status === 'success') {
+                if (data.chats.length === 0) {
+                     htmlContent = '<li style="padding: 20px; text-align:center; color:#a0aec0;">Нет чатов</li>';
+                } else {
+                    data.chats.forEach(partner => {
+                        const avatarSrc = getAvatarUrl(partner.avatarBase64, partner.emailHash, 50);
+                        const isActive = activeChatPartnerId === partner.id ? ' active' : '';
+                        htmlContent += `
+                            <li class="chat-item${isActive}" onclick="openChat('${partner.id}', '${partner.displayName}', '${partner.avatarBase64}', '${partner.emailHash}')">
+                                <img class="avatar" src="${avatarSrc}">
+                                <div class="details">
+                                    <div class="name">${partner.displayName}</div>
+                                    <div class="last-message">@${partner.id}</div>
+                                </div>
+                            </li>`;
+                    });
+                }
+            } else {
+                htmlContent = '<li style="padding: 20px; text-align:center; color:#a0aec0;">Ошибка загрузки чатов</li>';
+            }
+            chatList.innerHTML = htmlContent;
+        } catch (error) {
+            console.error('Ошибка загрузки чатов:', error);
+            chatList.innerHTML = '<li style="padding: 20px; text-align:center; color:#e53e3e;">Ошибка сети</li>';
+        }
+    }
+    
+    let activeChatIsChannel = false;
+    let activeChatRole = null;
+
+    function openChat(pId, pName, pAvatar, pHash, isChannel = false) {
+        activeChatPartnerId = pId;
+        activeChatPartnerName = pName;
+        activeChatPartnerAvatarBase64 = pAvatar;
+        activeChatPartnerEmailHash = pHash;
+        activeChatIsChannel = isChannel || false;
+
+        document.getElementById('input-area').classList.remove('hidden');
+        
+        const profileLinkEl = document.getElementById('companion-profile-link');
+        profileLinkEl.style.display = 'flex';
+        document.getElementById('chat-start-title').style.display = 'none';
+
+        const avatarSrc = isChannel 
+            ? (pAvatar || DEFAULT_AVATAR)
+            : getAvatarUrl(pAvatar, pHash, 50);
+        document.getElementById('companion-avatar').src = avatarSrc;
+        document.getElementById('companion-displayname').innerText = pName;
+        
+        if (isChannel) {
+            document.getElementById('companion-username').innerHTML = `📢 Канал`;
+            // Скрываем статус для каналов
+            const statusEl = document.getElementById('companion-status');
+            if (statusEl) statusEl.style.display = 'none';
+            // Скрываем кнопку подарка и звонка для каналов
+            document.getElementById('gift-button').style.display = 'none';
+            document.getElementById('call-button').style.display = 'none';
+            // Проверяем роль пользователя в канале
+            checkChannelRole(pId);
+        } else {
+            document.getElementById('companion-username').innerHTML = `@${pId} · <span id="companion-status">...</span>`;
+            const statusEl = document.getElementById('companion-status');
+            if (statusEl) statusEl.style.display = 'inline';
+            document.getElementById('gift-button').style.display = 'flex';
+            document.getElementById('call-button').style.display = 'flex';
+            activeChatRole = null;
+        }
+        
+        document.body.classList.add('chat-active');
+
+        if (getSetting('status', true) && !isChannel) {
+            updateCompanionStatus(pId);
+        }
+
+        renderMessages(pId, true); 
+        renderChatList(); 
+    }
+
+    async function checkChannelRole(roomId) {
+        try {
+            const response = await fetch(`${API_URL}/api/rooms`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'list', user_id: currentUser.id })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                const room = data.rooms.find(r => r.id === roomId);
+                if (room) {
+                    activeChatRole = room.role;
+                    // Скрываем поле ввода если пользователь не owner/admin
+                    if (room.role !== 'owner' && room.role !== 'admin') {
+                        document.getElementById('input-area').classList.add('hidden');
+                    } else {
+                        document.getElementById('input-area').classList.remove('hidden');
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Ошибка проверки роли:', e);
+        }
+    }
+    
+    async function renderMessages(partnerId, forceScroll = false) {
+        const container = document.getElementById('messages-container');
+        const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+
+        try {
+            const response = await fetch(`${API_URL}/api/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'history', user_a: currentUser.id, user_b: partnerId })
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                let htmlContent = '';
+                if (data.messages.length === 0) {
+                     htmlContent = '<div style="margin-top:auto; text-align:center; color:#a0aec0; padding-bottom:50px;"><p>Чат пуст. Начните общение.</p></div>';
+                } else {
+                    const partnerAvatar = activeChatPartnerAvatarBase64;
+                    const partnerHash = activeChatPartnerEmailHash;
+                    
+                    data.messages.forEach(msg => {
+                        const isSent = msg.sender === currentUser.id;
+                        const senderBase64 = isSent ? currentUser.avatarBase64 : partnerAvatar;
+                        const senderHash = isSent ? currentUser.emailHash : partnerHash;
+                        const avatarSrc = getAvatarUrl(senderBase64, senderHash, 35);
+                        const rowClass = isSent ? 'sent' : 'received';
+                        
+                        // Создаем кнопку удаления только для своих НЕ подарочных сообщений
+                        const canDelete = isSent && !msg.is_gift;
+                        const deleteButton = canDelete ? 
+                            `<button class="delete-message-btn" onclick="deleteMessage('${msg.uuid}')" title="Удалить сообщение">
+                                <i class="fas fa-trash"></i>
+                            </button>` : '';
+
+                        const readMark = isSent && msg.is_read ? ' · <span style="color:#34d399;">прочитано</span>' : '';
+
+                        if (msg.is_gift) {
+                            htmlContent += `
+                                <div class="message-row ${rowClass} gift-row" data-uuid="${msg.uuid}">
+                                    <img class="avatar" src="${avatarSrc}">
+                                    <div class="message ${rowClass} gift-message">
+                                        <span class="gift-icon">${getGiftIcon(msg.gift_id)}</span>
+                                        ${msg.text.replace('Подарок: ', '')} 
+                                        <span class="message-info">${msg.timestamp}${readMark}</span>
+                                        ${deleteButton}
+                                    </div>
+                                </div>`;
+                        } else {
+                            htmlContent += `
+                                <div class="message-row ${rowClass}" data-uuid="${msg.uuid}">
+                                    <img class="avatar" src="${avatarSrc}">
+                                    <div class="message ${rowClass}">
+                                        ${msg.text} 
+                                        <span class="message-info">${msg.timestamp}${readMark}</span>
+                                        ${deleteButton}
+                                    </div>
+                                </div>`;
+                        }
+                    });
+                }
+                
+                container.innerHTML = htmlContent;
+                
+                // звук и торжественное отображение при новом входящем сообщении
+                try {
+                    const lastMsg = data.messages[data.messages.length - 1];
+                    window.__lastMessageByChat = window.__lastMessageByChat || {};
+                    const prevId = window.__lastMessageByChat[partnerId];
+                    window.__lastMessageByChat[partnerId] = lastMsg ? lastMsg.uuid : null;
+                    const isNewIncoming = lastMsg && prevId && prevId !== lastMsg.uuid && lastMsg.sender !== currentUser.id;
+                    if (isNewIncoming) {
+                        if (getSetting('sounds', true)) {
+                            messageSound.currentTime = 0;
+                            messageSound.play().catch(() => {});
+                        }
+                        if (lastMsg.is_gift) {
+                            const giftMeta = allGiftsMap[lastMsg.gift_id] || {};
+                            showGiftCelebration(giftMeta.name || lastMsg.text.replace('Подарок: ', ''), giftMeta.image_url, lastMsg.sender);
+                        }
+                    }
+                } catch (e) {}
+
+                // Добавляем стили для кнопок удаления динамически
+                const style = document.createElement('style');
+                style.textContent = `
+                    .delete-message-btn {
+                        background: none;
+                        border: none;
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        margin-left: 10px;
+                        opacity: 0.5;
+                        font-size: 0.8rem;
+                        transition: opacity 0.2s;
+                        padding: 2px 5px;
+                        border-radius: 3px;
+                    }
+                    
+                    .delete-message-btn:hover {
+                        opacity: 1;
+                        background: rgba(229, 62, 62, 0.1);
+                        color: var(--danger);
+                    }
+                    
+                    .sent .delete-message-btn {
+                        color: rgba(255, 255, 255, 0.7);
+                    }
+                    
+                    .sent .delete-message-btn:hover {
+                        color: white;
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                    
+                    .gift-message .delete-message-btn {
+                        color: rgba(255, 255, 255, 0.7);
+                    }
+                    
+                    .gift-message .delete-message-btn:hover {
+                        color: white;
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                `;
+                
+                // Удаляем старые стили если есть
+                const oldStyle = document.getElementById('delete-message-styles');
+                if (oldStyle) oldStyle.remove();
+                style.id = 'delete-message-styles';
+                document.head.appendChild(style);
+                
+                if (forceScroll || isAtBottom) {
+                    scrollToBottom();
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки сообщений:', error);
+            container.innerHTML = '<div style="text-align:center; color:#e53e3e; padding:20px;">Ошибка загрузки сообщений</div>';
+        }
+    }
+
+    // Функция удаления сообщения
+    async function deleteMessage(messageId) {
+        if (!confirm('Вы уверены, что хотите удалить это сообщение?')) {
+            return;
+        }
+        
+        if (!activeChatPartnerId) {
+            alert('Невозможно удалить сообщение: чат не выбран');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/delete_message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    user_id: currentUser.id,
+                    message_id: messageId,
+                    chat_partner_id: activeChatPartnerId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Удаляем сообщение из DOM
+                const messageElement = document.querySelector(`[data-uuid="${messageId}"]`);
+                if (messageElement) {
+                    messageElement.style.opacity = '0.5';
+                    messageElement.style.transition = 'opacity 0.3s';
+                    setTimeout(() => {
+                        messageElement.remove();
+                        
+                        // Проверяем, остались ли сообщения
+                        const messages = document.querySelectorAll('.message-row');
+                        if (messages.length === 0) {
+                            const container = document.getElementById('messages-container');
+                            container.innerHTML = '<div style="margin-top:auto; text-align:center; color:#a0aec0; padding-bottom:50px;"><p>Чат пуст. Начните общение.</p></div>';
+                        }
+                    }, 300);
+                }
+                
+                // Показываем уведомление
+                showNotification(data.message, 'success');
+                
+                // Обновляем баланс если это был подарок
+                if (data.new_balance !== undefined) {
+                    currentUser.coins = data.new_balance;
+                    localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                    updateCoinsDisplay(data.new_balance);
+                }
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка удаления сообщения:', error);
+            showNotification('Не удалось удалить сообщение', 'error');
+        }
+    }
+
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        
+        if (type === 'success') {
+            notification.style.background = 'var(--success)';
+        } else if (type === 'error') {
+            notification.style.background = 'var(--danger)';
+        } else {
+            notification.style.background = 'var(--accent-color)';
+        }
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Автоматическое скрытие через 3 секунды
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Обновленная функция получения иконки подарка
+    function getGiftIcon(giftId) {
+        // Пытаемся найти подарок в загруженном списке
+        const gift = allGiftsMap[giftId];
+        if (gift) {
+            return renderGiftVisual(gift.image_url);
+        }
+        
+        // Фоллбек для старых хардкодных подарков
+        const giftIcons = {
+            'gift1': '❤️',
+            'gift2': '⭐',
+            'gift3': '🎁',
+            'gift4': '🏆',
+            'gift5': '👑',
+            'gift6': '🚀'
+        };
+        const icon = giftIcons[giftId];
+        return icon ? renderGiftVisual(icon) : '🎁';
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('message-input');
+        const text = input.value.trim();
+        if (!text || !activeChatPartnerId) return;
+        
+        // Проверяем права для каналов
+        if (activeChatIsChannel && activeChatRole !== 'owner' && activeChatRole !== 'admin') {
+            showNotification('Только владелец или админ канала может писать', 'error');
+            return;
+        }
+        
+        const messageText = text;
+        input.value = '';
+        
+        const tempContainer = document.getElementById('messages-container');
+        const tempMsgHtml = `
+            <div class="message-row sent">
+                <img class="avatar" src="${getAvatarUrl(currentUser.avatarBase64, currentUser.emailHash, 35)}">
+                <div class="message sent">
+                    ${messageText} 
+                    <span class="message-info">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})} (отправка...)</span>
+                </div>
+            </div>`;
+        tempContainer.insertAdjacentHTML('beforeend', tempMsgHtml);
+        scrollToBottom();
+
+        try {
+            const response = await fetch(`${API_URL}/api/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'send', 
+                    sender_id: currentUser.id, 
+                    receiver_id: activeChatPartnerId, 
+                    text: messageText 
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                await renderMessages(activeChatPartnerId, true);
+                renderChatList();
+            } else {
+                console.error('Ошибка отправки:', data.message);
+                showNotification(data.message || 'Ошибка отправки сообщения', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка сети:', error);
+            showNotification('Ошибка сети при отправке', 'error');
+        }
+    }
+
+    // --- SEARCH ---
+
+    async function subscribeChannel(roomId, name, avatarBase64) {
+        try {
+            const response = await fetch(`${API_URL}/api/rooms`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'join',
+                    room_id: roomId,
+                    user_id: currentUser.id
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(`Вы подписались на канал "${name}"`, 'success');
+                // Обновляем список чатов
+                renderChatList();
+                // Закрываем поиск и открываем чаты
+                showTab('chats');
+                // Открываем канал
+                setTimeout(() => {
+                    openChat(roomId, name, avatarBase64 || '', '', true);
+                }, 300);
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка подписки на канал:', error);
+            showNotification('Не удалось подписаться на канал', 'error');
+        }
+    }
+
+    async function handleSearch() {
+        const term = document.getElementById('search-input').value.toLowerCase();
+        const list = document.getElementById('search-list');
+        list.innerHTML = '';
+        if (term.length < 2) return;
+
+        try {
+            const response = await fetch(`${API_URL}/api/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_user_id: currentUser.id, term: term })
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                data.results.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'user-item';
+
+                    if (item.kind === 'channel') {
+                        const avatarSrc = item.avatarBase64 || DEFAULT_AVATAR;
+                        li.innerHTML = `
+                            <img class="avatar" src="${avatarSrc}">
+                            <div class="details">
+                                <div class="name">${item.name}</div>
+                                <div class="id">📢 Канал</div>
+                            </div>
+                            <button class="tab-button" style="width:auto; background:#4f46e5; color:white;" 
+                                    onclick="subscribeChannel('${item.id}', '${item.name}', '${item.avatarBase64 || ''}')">
+                                Подписаться
+                            </button>`;
+                    } else {
+                        const avatarSrc = getAvatarUrl(item.avatarBase64, item.emailHash, 50);
+                        li.innerHTML = `
+                            <img class="avatar" src="${avatarSrc}">
+                            <div class="details">
+                                <div class="name">${item.displayName}</div>
+                                <div class="id">@${item.id}</div>
+                            </div>
+                            <button class="tab-button" style="width:auto; background:#38a169; color:white;" 
+                                    onclick="openChat('${item.id}', '${item.displayName}', '${item.avatarBase64}', '${item.emailHash}'); showTab('chats');">
+                                Чат
+                            </button>`;
+                    }
+                    list.appendChild(li);
+                });
+            }
+        } catch (error) {
+            console.error('Ошибка поиска:', error);
+            list.innerHTML = '<li style="padding: 10px; text-align:center; color:#e53e3e;">Ошибка поиска</li>';
+        }
+    }
+
+    // --- PROFILE ---
+
+    async function loadProfile() {
+        document.getElementById('profile-username-display').innerText = `@${currentUser.id}`;
+        document.getElementById('profile-avatar').src = getAvatarUrl(currentUser.avatarBase64, currentUser.emailHash, 100);
+        try {
+            const response = await fetch(`${API_URL}/api/profile/${currentUser.id}`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                document.getElementById('edit-display-name').value = data.profile.displayName;
+                document.getElementById('edit-bio').value = data.profile.bio;
+                const currentAvatar = data.profile.avatarBase64 || "";
+                document.getElementById('profile-avatar').src = getAvatarUrl(currentAvatar, currentUser.emailHash, 100);
+                updateCoinsDisplay(data.profile.coins || 0);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
+        }
+        newAvatarBase64 = null; 
+        document.getElementById('avatar-input').value = null; 
+    }
+
+    async function saveProfileChanges() {
+        const displayName = document.getElementById('edit-display-name').value;
+        const bio = document.getElementById('edit-bio').value;
+        const bodyData = { displayName, bio };
+        if (newAvatarBase64 !== null) bodyData.avatarBase64 = newAvatarBase64;
+
+        try {
+            const response = await fetch(`${API_URL}/api/profile/${currentUser.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                currentUser.displayName = data.profile.displayName;
+                currentUser.avatarBase64 = data.profile.avatarBase64 || "";
+                currentUser.coins = data.profile.coins || 0;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                updateCoinsDisplay(currentUser.coins);
+                showNotification('Профиль сохранен!', 'success');
+                loadProfile();
+            } else showNotification('Ошибка: ' + data.message, 'error');
+        } catch (error) {
+            showNotification('Ошибка сети при сохранении профиля', 'error');
+        }
+    }
+    
+    // --- PROFILE VIEWING ---
+
+    function openProfileModal(user) {
+        document.getElementById('modal-avatar').src = getAvatarUrl(user.avatarBase64, user.emailHash, 100) || DEFAULT_AVATAR;
+        document.getElementById('modal-displayname').textContent = user.displayName;
+        document.getElementById('modal-username').textContent = `@${user.id}`;
+        const bioText = user.bio && user.bio.trim() ? user.bio : 'Информация о себе не указана.';
+        document.getElementById('modal-bio').textContent = bioText;
+        
+        const profileGiftsContainer = document.getElementById('modal-profile-gifts');
+        const normalGifts = user.profile_gifts || [];
+        const nftGifts = user.profile_nft_gifts || [];
+        const all = normalGifts.concat(nftGifts);
+        if (all.length > 0) {
+            profileGiftsContainer.innerHTML = `
+                <div style="margin-top: 20px;">
+                    <p style="font-weight: 600; margin-bottom: 10px; color: var(--text-main);">Подарки в профиле:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        ${all.map(gift => {
+                            const isNft = !!gift.token_id;
+                            const bg = isNft && gift.bg_variant ? getNftBackground(gift.bg_variant) : 'linear-gradient(135deg,#1f2937,#111827)';
+                            const extraInfo = isNft
+                                ? `#${gift.serial_number || ''} · ${gift.price || 0} монет`
+                                : (gift.is_rare ? 'Редкий подарок' : 'Обычный подарок');
+                            return `
+                            <div style="flex:0 0 120px; text-align: center; background:${bg}; padding: 10px; border-radius: 14px; min-width: 100px; color:#e5e7eb; box-shadow:0 10px 20px rgba(0,0,0,0.4);">
+                                <div style="font-size: 1.7rem; display:flex; justify-content:center; margin-bottom:4px;">
+                                    ${renderGiftVisual(gift.image_url)}
+                                </div>
+                                <div style="font-size: 0.75rem; font-weight:600; margin-bottom:2px;">${gift.name}</div>
+                                <div style="font-size:0.7rem; color:#d1d5db;">${extraInfo}</div>
+                                ${gift.is_rare ? '<div style="color: #facc15; font-size: 0.6rem; margin-top:2px;">⚡ Редкий</div>' : ''}
+                                ${isNft ? '<div style="color:#a5b4fc; font-size:0.6rem; margin-top:2px;">NFT</div>' : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        } else {
+            profileGiftsContainer.innerHTML = '';
+        }
+        
+        document.getElementById('profile-modal').style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profile-modal').style.display = 'none';
+    }
+
+    async function fetchCompanionProfile(userId) {
+        try {
+            const response = await fetch(`${API_URL}/api/user/${userId}`);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                openProfileModal(data.user);
+            } else {
+                showNotification(data.message || 'Ошибка при загрузке профиля.', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе профиля:', error);
+            showNotification('Не удалось подключиться к серверу для загрузки профиля.', 'error');
+        }
+    }
+    
+    // --- ADMIN PANEL & SEARCH ---
+
+    async function loadAdminUsers() {
+        const userListEl = document.getElementById('admin-user-list');
+        userListEl.innerHTML = '<p style="text-align: center; color: #888;">Загрузка...</p>';
+        
+        try {
+            const response = await fetch(`${API_URL}/api/admin/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'list', admin_id: currentUser.id })
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                adminUsersCache = data.users;
+                document.getElementById('admin-users-count').innerText = adminUsersCache.length;
+                renderAdminList(adminUsersCache);
+            } else {
+                userListEl.innerHTML = `<p style="text-align: center; color: #e53e3e;">Ошибка: ${data.message}</p>`;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки пользователей:', error);
+            userListEl.innerHTML = `<p style="text-align: center; color: #e53e3e;">Ошибка сети</p>`;
+        }
+
+        // Загружаем группы/каналы для админа
+        try {
+            const respRooms = await fetch(`${API_URL}/api/rooms`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'list', user_id: currentUser.id })
+            });
+            const roomsData = await respRooms.json();
+            const listEl = document.getElementById('admin-rooms-list');
+            if (roomsData.status === 'success') {
+                adminRoomsCache = roomsData.rooms || [];
+                renderAdminRooms(adminRoomsCache);
+            } else if (listEl) {
+                listEl.innerHTML = `<p style="text-align:center; color:#e53e3e;">Ошибка загрузки групп</p>`;
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки групп:', e);
+            const listEl = document.getElementById('admin-rooms-list');
+            if (listEl) listEl.innerHTML = `<p style="text-align:center; color:#e53e3e;">Ошибка сети</p>`;
+        }
+    }
+
+    function renderAdminList(users) {
+        const userListEl = document.getElementById('admin-user-list');
+        if (users.length === 0) {
+            userListEl.innerHTML = '<p style="text-align:center; color:#a0aec0;">Пользователи не найдены.</p>';
+            return;
+        }
+
+        let html = '';
+        users.forEach(user => {
+            const isBanned = user.is_banned === 1;
+            const bannedText = isBanned ? '<span style="color:red; font-weight:bold;">(BAN)</span>' : '';
+            html += `
+                <div class="admin-user-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0;">@${user.id} ${bannedText}</h4>
+                        <span style="font-size:0.8em; background:#edf2f7; padding:2px 6px; border-radius:4px;">${user.role}</span>
+                    </div>
+                    <div style="margin-top:5px; color:#718096; font-size:0.9em;">Монеты: ${user.coins || 0}</div>
+                    
+                    <div style="margin-top:10px;">
+                        <input type="text" id="admin-name-${user.id}" value="${user.displayName}" placeholder="Имя" style="margin-bottom:5px; padding:8px;">
+                        <input type="password" id="admin-pass-${user.id}" placeholder="Сменить пароль" style="margin-bottom:5px; padding:8px;">
+                        <input type="number" id="admin-coins-${user.id}" value="${user.coins || 0}" placeholder="Количество монет" style="margin-bottom:5px; padding:8px;" min="0">
+                    </div>
+                    
+                    <div class="admin-actions">
+                        <button class="admin-save-btn" onclick="adminEditUser('${user.id}')">Сохранить</button>
+                        <button class="admin-nft-btn" onclick="adminCreateNftForUser('${user.id}')">NFT подарок</button>
+                        ${isBanned 
+                            ? `<button class="admin-unban-btn" onclick="adminBanUser('${user.id}', 0)">Разбанить</button>`
+                            : `<button class="admin-ban-btn" onclick="adminBanUser('${user.id}', 1)">Забанить</button>`
+                        }
+                    </div>
+                </div>`;
+        });
+        userListEl.innerHTML = html;
+    }
+
+    function filterAdminUsers() {
+        const term = document.getElementById('admin-search-input').value.toLowerCase();
+        const filtered = adminUsersCache.filter(user => 
+            user.id.toLowerCase().includes(term) || 
+            user.displayName.toLowerCase().includes(term)
+        );
+        renderAdminList(filtered);
+    }
+    
+    async function adminEditUser(targetId) {
+        const newDisplayName = document.getElementById(`admin-name-${targetId}`).value;
+        const newPassword = document.getElementById(`admin-pass-${targetId}`).value;
+        const newCoins = parseInt(document.getElementById(`admin-coins-${targetId}`).value);
+        
+        const bodyData = { 
+            action: 'edit', admin_id: currentUser.id, target_id: targetId, displayName: newDisplayName,
+        };
+        if (newPassword.trim()) bodyData.password = newPassword.trim();
+        if (!isNaN(newCoins)) bodyData.coins = newCoins;
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await response.json();
+            showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+            if (data.status === 'success') document.getElementById(`admin-pass-${targetId}`).value = ''; 
+        } catch (error) {
+            showNotification('Ошибка сети при обновлении пользователя', 'error');
+        }
+    }
+    
+    async function adminBanUser(targetId, isBanned) {
+        if (!confirm(`Вы уверены, что хотите ${isBanned ? 'забанить' : 'разбанить'} пользователя @${targetId}?`)) return;
+        try {
+            const response = await fetch(`${API_URL}/api/admin/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'edit', admin_id: currentUser.id, target_id: targetId, is_banned: isBanned, 
+                })
+            });
+            const data = await response.json();
+            showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+            if (data.status === 'success') loadAdminUsers(); 
+        } catch (error) {
+            showNotification('Ошибка сети при изменении статуса пользователя', 'error');
+        }
+    }
+
+    // --- АДМИН: ПРОСМОТР СВОИХ ПОДАРКОВ И АПГРЕЙД В NFT ---
+
+    async function openAdminGifts() {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/my_gifts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: currentUser.id })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                renderAdminGiftsModal(data.gifts || []);
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки подарков админа:', e);
+            showNotification('Ошибка сети при загрузке подарков', 'error');
+        }
+    }
+
+    // --- АДМИН: ГРУППЫ И КАНАЛЫ ---
+
+    function renderAdminRooms(rooms) {
+        const listEl = document.getElementById('admin-rooms-list');
+        if (!listEl) return;
+        if (!rooms.length) {
+            listEl.innerHTML = '<p style="text-align:center; color:#a0aec0;">Группы и каналы не найдены.</p>';
+            return;
+        }
+        let html = '';
+        rooms.forEach(room => {
+            const typeLabel = room.type === 'channel' ? 'Канал' : 'Группа';
+            html += `
+                <div style="display:flex; align-items:center; padding:8px 10px; border-radius:10px; background:rgba(15,23,42,0.9); margin-bottom:6px;">
+                    <div style="width:32px; height:32px; border-radius:999px; overflow:hidden; background:#1f2937; margin-right:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                        ${room.avatarBase64 ? `<img src="${room.avatarBase64}" style="width:100%; height:100%; object-fit:cover;">` : '<i class="fas fa-users"></i>'}
+                    </div>
+                    <div style="flex-grow:1;">
+                        <div style="font-size:0.9rem; font-weight:600; color:#e5e7eb;">${room.name}</div>
+                        <div style="font-size:0.75rem; color:#9ca3af;">${typeLabel} · роль: ${room.role}</div>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
+    }
+
+    function openCreateRoomModal() {
+        const modal = document.createElement('div');
+        modal.id = 'create-room-modal';
+        modal.style.cssText = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.55);
+            z-index:140; display:flex; align-items:center; justify-content:center;
+        `;
+        modal.innerHTML = `
+            <div style="background:#0f172a; color:#e5e7eb; padding:20px; border-radius:20px; max-width:420px; width:90%; box-shadow:0 20px 40px rgba(0,0,0,0.7);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin:0;">Создать группу/канал</h3>
+                    <button onclick="closeCreateRoomModal()" style="background:none; border:none; color:#9ca3af; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+                <label style="font-size:0.85rem;">Название</label>
+                <input id="room-name-input" type="text" style="width:100%; padding:8px 10px; margin:4px 0 8px; border-radius:10px; border:1px solid #4b5563; background:#020617; color:#e5e7eb;">
+                
+                <label style="font-size:0.85rem;">О группе</label>
+                <textarea id="room-about-input" rows="3" style="width:100%; padding:8px 10px; margin:4px 0 8px; border-radius:10px; border:1px solid #4b5563; background:#020617; color:#e5e7eb;"></textarea>
+
+                <label style="font-size:0.85rem; display:block; margin-top:4px;">Аватар</label>
+                <input id="room-avatar-input" type="file" accept="image/*" style="margin:4px 0 8px; color:#9ca3af;">
+                
+                <button onclick="createRoomFromModal()" style="width:100%; margin-top:8px; padding:9px 0; border:none; border-radius:10px; background:#4f46e5; color:white; font-weight:600; cursor:pointer;">
+                    Создать
+                </button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeCreateRoomModal();
+        });
+    }
+
+    function closeCreateRoomModal() {
+        const modal = document.getElementById('create-room-modal');
+        if (modal) modal.remove();
+    }
+
+    async function createRoomFromModal() {
+        const name = document.getElementById('room-name-input').value.trim();
+        const about = document.getElementById('room-about-input').value.trim();
+        const fileInput = document.getElementById('room-avatar-input');
+        let avatarBase64 = null;
+
+        if (!name) {
+            showNotification('Введите название группы', 'error');
+            return;
+        }
+
+        const sendRequest = async () => {
+            try {
+                const resp = await fetch(`${API_URL}/api/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create',
+                        owner_id: currentUser.id,
+                        name,
+                        type: 'channel',
+                        about,
+                        avatarBase64
+                    })
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    showNotification('Канал создан', 'success');
+                    closeCreateRoomModal();
+                    loadAdminUsers();
+                } else {
+                    showNotification('Ошибка: ' + data.message, 'error');
+                }
+            } catch (e) {
+                console.error('Ошибка создания группы:', e);
+                showNotification('Ошибка сети при создании группы', 'error');
+            }
+        };
+
+        if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                avatarBase64 = e.target.result;
+                sendRequest();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            await sendRequest();
+        }
+    }
+    function renderAdminGiftsModal(gifts) {
+        const modal = document.createElement('div');
+        modal.id = 'admin-gifts-modal';
+        modal.style.cssText = `
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 110; display:flex; align-items:center; justify-content:center;
+        `;
+
+        let html = `
+            <div style="background:white; padding:20px; border-radius:24px; max-width:500px; width:90%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">Мои подарки</h3>
+                    <button onclick="closeAdminGiftsModal()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>`;
+
+        if (!gifts.length) {
+            html += `<p style="color:#718096; text-align:center; margin:0;">Вы еще не создавали подарков.</p>`;
+        } else {
+            html += `<div id="admin-gifts-list">`;
+            gifts.forEach(g => {
+                html += `
+                    <div style="display:flex; align-items:center; padding:8px 10px; margin-bottom:6px; border-radius:10px; background:rgba(15,23,42,0.9); color:#e5e7eb;">
+                        <div style="margin-right:10px; font-size:1.5rem;">${renderGiftVisual(g.image_url)}</div>
+                        <div style="flex-grow:1; font-size:0.85rem;">
+                            <div style="font-weight:600;">${g.name}</div>
+                            <div style="color:#9ca3af;">ID: ${g.id} · Цена: ${g.price} монет</div>
+                            <div style="color:${g.upgradeable ? '#34d399' : '#f97316'}; font-size:0.78rem; margin-top:2px;">
+                                Апгрейд: ${g.upgradeable ? 'разрешен' : 'запрещен'}
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <button onclick="toggleGiftUpgradeable('${g.id}', ${g.upgradeable ? 'false' : 'true'})" 
+                                    style="background:${g.upgradeable ? '#f97316' : '#10b981'}; color:white; border:none; padding:6px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">
+                                ${g.upgradeable ? 'Запретить апгрейд' : 'Разрешить апгрейд'}
+                            </button>
+                            <button onclick="adminCreateNftFromGift('${g.id}')" 
+                                    style="background:#6366f1; color:white; border:none; padding:6px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">
+                                NFT пользователю
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeAdminGiftsModal();
+        });
+    }
+
+    function closeAdminGiftsModal() {
+        const modal = document.getElementById('admin-gifts-modal');
+        if (modal) modal.remove();
+    }
+
+    async function toggleGiftUpgradeable(giftId, enable) {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/toggle_gift_upgradeable`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: currentUser.id,
+                    gift_id: giftId,
+                    enable: enable
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification('Настройка апгрейда обновлена', 'success');
+                closeAdminGiftsModal();
+                openAdminGifts();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error('Ошибка toggleGiftUpgradeable:', e);
+            showNotification('Ошибка сети при обновлении подарка', 'error');
+        }
+    }
+
+    async function adminCreateNftFromGift(giftId) {
+        const targetId = prompt('Кому выдать NFT? Введите @ID без @:');
+        if (!targetId) return;
+        const priceStr = prompt(`Введите цену NFT подарка для @${targetId} (в монетах):`, '100');
+        if (!priceStr) return;
+        const price = parseInt(priceStr);
+        if (isNaN(price) || price <= 0) {
+            showNotification('Некорректная цена', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/upgrade_to_nft`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: currentUser.id,
+                    owner_id: targetId,
+                    gift_id: giftId,
+                    price: price
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(`NFT подарок (${giftId}) для @${targetId} создан!`, 'success');
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error('Ошибка создания NFT из подарка:', e);
+            showNotification('Ошибка сети при создании NFT подарка', 'error');
+        }
+    }
+    // --- АДМИН: СОЗДАНИЕ NFT ПОДАРКА ДЛЯ ЮЗЕРА ---
+
+    async function adminCreateNftForUser(targetId) {
+        const priceStr = prompt(`Введите цену NFT подарка для @${targetId} (в монетах):`, "100");
+        if (!priceStr) return;
+        const price = parseInt(priceStr);
+        if (isNaN(price) || price <= 0) {
+            showNotification('Некорректная цена', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/upgrade_to_nft`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: currentUser.id,
+                    owner_id: targetId,
+                    gift_id: 'admin_gift',
+                    price: price
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(`NFT подарок для @${targetId} создан!`, 'success');
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error('Ошибка создания NFT:', e);
+            showNotification('Ошибка сети при создании NFT подарка', 'error');
+        }
+    }
+
+    // --- GIFTS FUNCTIONALITY ---
+    
+    // Новая функция: загрузить ВСЕ подарки (для кэша иконок)
+    async function fetchAllGifts() {
+        try {
+            const response = await fetch(`${API_URL}/api/gifts`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                giftsList = data.gifts;
+                // Создаем карту для быстрого поиска
+                allGiftsMap = {};
+                giftsList.forEach(g => {
+                    allGiftsMap[g.id] = g;
+                });
+            }
+        } catch (error) {
+            console.error("Ошибка загрузки списка подарков:", error);
+        }
+    }
+
+    async function openGiftsModal() {
+        if (!activeChatPartnerId) {
+            showNotification('Сначала выберите чат!', 'error');
+            return;
+        }
+
+        selectedGiftId = null;
+        document.getElementById('send-gift-button').disabled = true;
+        document.getElementById('gifts-balance').innerHTML = `<i class="fas fa-coins"></i> ${currentUser.coins || 0}`;
+
+        await fetchAllGifts(); // Обновляем список перед открытием
+        renderGiftsList();
+        document.getElementById('gifts-modal').style.display = 'flex';
+    }
+
+    function renderGiftsList() {
+        const container = document.getElementById('gifts-container');
+        let html = '';
+
+        giftsList.forEach(gift => {
+            const canAfford = (currentUser.coins || 0) >= gift.price;
+            const isLimited = gift.quantity > 0;
+            html += `
+                <div class="gift-item ${!canAfford ? 'disabled' : ''}" 
+                     onclick="${canAfford ? `selectGift('${gift.id}')` : ''}">
+                    <div class="gift-icon-large">${renderGiftVisual(gift.image_url)}</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">${gift.name}</div>
+                    <div class="gift-price">${gift.price} монет</div>
+                    ${gift.is_rare ? '<div style="color: #d69e2e; font-size: 0.8rem; margin-top: 5px;">⚡ Редкий</div>' : ''}
+                    ${isLimited ? `<div style="color: #718096; font-size: 0.7rem; margin-top: 3px;">Осталось: ${gift.quantity}</div>` : ''}
+                    ${!canAfford ? '<div style="color: #e53e3e; font-size: 0.8rem; margin-top: 5px;">Недостаточно монет</div>' : ''}
+                </div>`;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function selectGift(giftId) {
+        selectedGiftId = giftId;
+        
+        document.querySelectorAll('.gift-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        const selectedElement = document.querySelector(`.gift-item[onclick*="${giftId}"]`);
+        if (selectedElement) {
+            selectedElement.classList.add('selected');
+        }
+        
+        document.getElementById('send-gift-button').disabled = false;
+    }
+
+    async function sendGift() {
+        if (!selectedGiftId || !activeChatPartnerId) return;
+
+        try {
+            const response = await fetch(`${API_URL}/api/send_gift`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender_id: currentUser.id,
+                    receiver_id: activeChatPartnerId,
+                    gift_id: selectedGiftId
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                currentUser.coins = data.new_balance;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                updateCoinsDisplay(data.new_balance);
+                
+                closeGiftsModal();
+                
+                await renderMessages(activeChatPartnerId, true);
+                
+                showNotification(`Подарок отправлен!`, 'success');
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка отправки подарка:', error);
+            showNotification('Не удалось отправить подарок', 'error');
+        }
+    }
+
+    function closeGiftsModal() {
+        document.getElementById('gifts-modal').style.display = 'none';
+        selectedGiftId = null;
+    }
+
+    // --- ИНВЕНТАРЬ И УПРАВЛЕНИЕ ПОДАРКАМИ ---
+
+    async function openInventory() {
+        try {
+            const [invRes, nftRes] = await Promise.all([
+                fetch(`${API_URL}/api/inventory/${currentUser.id}`),
+                fetch(`${API_URL}/api/nft/my/${currentUser.id}`)
+            ]);
+            const invData = await invRes.json();
+            const nftData = await nftRes.json();
+            
+            if (invData.status === 'success') {
+                myNfts = nftData.status === 'success' ? nftData.items : [];
+                showInventoryModal(invData.inventory, myNfts);
+            } else {
+                showNotification('Ошибка загрузки инвентаря: ' + invData.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки инвентаря:', error);
+            showNotification('Не удалось загрузить инвентарь', 'error');
+        }
+    }
+
+    function showInventoryModal(inventory, nftItems = []) {
+        const modal = document.createElement('div');
+        modal.id = 'inventory-modal';
+        modal.style.cssText = `
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+        `;
+        
+        let html = `
+            <div style="background: white; padding: 25px; border-radius: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Мой инвентарь</h3>
+                    <button onclick="closeInventoryModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
+                </div>`;
+        
+        if (inventory.length === 0 && nftItems.length === 0) {
+            html += `<p style="text-align: center; color: #718096;">Инвентарь пуст</p>`;
+        } else {
+            if (inventory.length > 0) {
+                html += `<p style="font-weight:600; margin-bottom:8px;">Обычные подарки</p>`;
+            inventory.forEach(item => {
+                const sellPrice = item.is_rare ? Math.floor(item.price * 0.8) : Math.floor(item.price * 0.5);
+                html += `
+                    <div class="inventory-item" style="display: flex; align-items: center; padding: 15px; background: #f8fafc; border-radius: 12px; margin-bottom: 10px;">
+                        <div style="font-size: 2rem; margin-right: 15px;">${renderGiftVisual(item.image_url)}</div>
+                        <div style="flex-grow: 1;">
+                            <div style="font-weight: 600;">${item.name}</div>
+                            <div style="font-size: 0.9rem; color: #718096;">
+                                Количество: ${item.quantity}
+                                ${item.is_rare ? '<span style="color: #d69e2e; margin-left: 10px;">⚡ Редкий</span>' : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-direction: column;">
+                            <button onclick="sellGift('${item.gift_id}', ${item.quantity})" 
+                                    style="background: #38a169; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                                Продать (${sellPrice} монет)
+                            </button>
+                            <button onclick="toggleProfileDisplay('${item.gift_id}', ${item.displayed_in_profile})" 
+                                    style="background: ${item.displayed_in_profile ? '#e53e3e' : '#3182ce'}; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                                ${item.displayed_in_profile ? 'Убрать из профиля' : 'В профиль'}
+                            </button>
+                            ${item.upgradeable ? `
+                            <button onclick="upgradeGiftToNft('${item.gift_id}')" 
+                                    style="background:#805ad5; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                                Апгрейд в NFT
+                            </button>` : ''}
+                        </div>
+                    </div>`;
+            });
+            }
+
+            if (nftItems.length > 0) {
+                html += `<hr style="margin:15px 0; border:none; border-top:1px solid #e2e8f0;">
+                         <p style="font-weight:600; margin-bottom:8px;">NFT подарки</p>
+                         <div style="display:flex; flex-wrap:wrap; gap:10px;">`;
+                nftItems.forEach(nft => {
+                    html += `
+                        <div class="nft-card" style="background:${getNftBackground(nft.bg_variant)};" 
+                             onclick="showNftInfo('${nft.token_id}')">
+                            <div class="nft-image-wrapper">
+                                ${renderGiftVisual(nft.image_url)}
+                            </div>
+                            <div class="nft-meta">
+                                #${nft.serial_number} • ${nft.name}<br>
+                                Владелец: @${nft.owner_id}<br>
+                                Цена: ${nft.price} монет
+                            </div>
+                            <div class="nft-actions">
+                                <button onclick="event.stopPropagation(); toggleNftMarket('${nft.token_id}', ${nft.is_listed ? 'false' : 'true'}, ${nft.price})" 
+                                        style="background:#3182ce; color:white;">
+                                    ${nft.is_listed ? 'Снять с маркета' : 'На маркет'}
+                                </button>
+                                <button onclick="event.stopPropagation(); regiftNft('${nft.token_id}')" 
+                                        style="background:#d69e2e; color:white;">
+                                    Подарить за 25⭐
+                                </button>
+                                <button onclick="event.stopPropagation(); toggleNftProfileDisplay('${nft.token_id}', ${nft.displayed_in_profile})" 
+                                        style="background:${nft.displayed_in_profile ? '#e53e3e' : '#10b981'}; color:white;">
+                                    ${nft.displayed_in_profile ? 'Убрать из профиля' : 'В профиль'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+        }
+        
+        html += `</div>`;
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeInventoryModal();
+            }
+        });
+    }
+
+    function closeInventoryModal() {
+        const modal = document.getElementById('inventory-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    function showNftInfo(tokenId) {
+        const nft = (myNfts || []).find(n => n.token_id === tokenId) || (nftMarket || []).find(n => n.token_id === tokenId);
+        if (!nft) return;
+        const info = `NFT #${nft.serial_number}\n` +
+                     `Подарок: ${nft.name}\n` +
+                     `Кто подарил (создал): @${nft.original_sender_id || nft.creator_admin_id || 'admin'}\n` +
+                     `Текущий владелец: @${nft.owner_id}\n` +
+                     `Цена: ${nft.price} монет\n` +
+                     `Создан: ${nft.created_at || ''}`;
+        alert(info);
+    }
+
+    async function toggleNftMarket(tokenId, list, currentPrice) {
+        let price = currentPrice;
+        if (list) {
+            const input = prompt('Введите цену продажи NFT (в монетах):', price && price > 0 ? price : '100');
+            if (!input) return;
+            price = parseInt(input);
+            if (isNaN(price) || price <= 0) {
+                showNotification('Некорректная цена', 'error');
+                return;
+            }
+        }
+        try {
+            const response = await fetch(`${API_URL}/api/nft/list`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    token_id: tokenId,
+                    is_listed: list,
+                    price: price
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                closeInventoryModal();
+                openInventory();
+                loadMarket();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showNotification('Ошибка сети при обновлении NFT', 'error');
+        }
+    }
+
+    async function regiftNft(tokenId) {
+        const toUser = prompt('Кому отправить NFT? Введите @ID без @:');
+        if (!toUser) return;
+        try {
+            const response = await fetch(`${API_URL}/api/nft/regift`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    from_user: currentUser.id,
+                    to_user: toUser,
+                    token_id: tokenId
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                currentUser.coins = data.new_balance;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                updateCoinsDisplay(data.new_balance);
+                showNotification('NFT успешно передарен за 25⭐', 'success');
+                closeInventoryModal();
+                openInventory();
+                loadMarket();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showNotification('Ошибка сети при передаривании NFT', 'error');
+        }
+    }
+
+    async function loadMarket() {
+        try {
+            const response = await fetch(`${API_URL}/api/nft/market`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                nftMarket = data.items || [];
+                renderMarket();
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки маркета:', e);
+        }
+    }
+
+    function renderMarket() {
+        const container = document.getElementById('market-list');
+        if (!container) return;
+        if (!nftMarket || nftMarket.length === 0) {
+            container.innerHTML = '<p style="color:#718096;">Пока нет NFT на продаже.</p>';
+            return;
+        }
+
+        // Группируем по базовому подарку
+        const groups = {};
+        nftMarket.forEach(nft => {
+            const key = nft.base_gift_id;
+            if (!groups[key]) {
+                groups[key] = { name: nft.name, image_url: nft.image_url, items: [] };
+            }
+            groups[key].items.push(nft);
+        });
+
+        let html = '';
+        Object.keys(groups).forEach(giftId => {
+            const group = groups[giftId];
+            const count = group.items.length;
+            const minPrice = Math.min(...group.items.map(i => i.price));
+            html += `
+                <div style="display:flex; align-items:center; padding:10px 12px; border-radius:14px; background:#f8fafc; margin-bottom:10px;">
+                    <div class="nft-image-wrapper" style="margin-bottom:0; margin-right:12px; background:#fff;">
+                        ${renderGiftVisual(group.image_url)}
+                    </div>
+                    <div style="flex-grow:1;">
+                        <div style="font-weight:600;">${group.name}</div>
+                        <div style="font-size:0.8rem; color:#718096;">NFT: ${count} · от ${minPrice} монет</div>
+                    </div>
+                    <button onclick="openGiftMarket('${giftId}')" 
+                            style="background:#3182ce; color:white; border:none; padding:8px 12px; border-radius:8px; font-size:0.8rem; cursor:pointer;">
+                        Открыть
+                    </button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    async function buyNft(tokenId, price) {
+        if (!confirm(`Купить этот NFT за ${price} монет?`)) return;
+        try {
+            const response = await fetch(`${API_URL}/api/nft/buy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    buyer_id: currentUser.id,
+                    token_id: tokenId
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                currentUser.coins = data.new_balance;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                updateCoinsDisplay(data.new_balance);
+                showNotification('NFT куплен!', 'success');
+                loadMarket();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showNotification('Ошибка сети при покупке NFT', 'error');
+        }
+    }
+
+    function openGiftMarket(baseGiftId) {
+        const items = (nftMarket || []).filter(n => n.base_gift_id === baseGiftId);
+        if (!items.length) return;
+
+        const modal = document.createElement('div');
+        modal.id = 'gift-market-modal';
+        modal.style.cssText = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.55);
+            z-index:120; display:flex; align-items:center; justify-content:center;
+        `;
+
+        const name = items[0].name;
+
+        let html = `
+            <div style="background:white; padding:20px; border-radius:24px; max-width:640px; width:94%; max-height:80vh; overflow-y:auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin:0;">${name} · NFT</h3>
+                    <button onclick="closeGiftMarketModal()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:12px;">`;
+
+        items.forEach(nft => {
+            html += `
+                <div class="nft-card" style="background:${getNftBackground(nft.bg_variant)};" onclick="showNftInfo('${nft.token_id}')">
+                    <div class="nft-image-wrapper">
+                        ${renderGiftVisual(nft.image_url)}
+                    </div>
+                    <div class="nft-meta">
+                        #${nft.serial_number} · Продавец: @${nft.owner_id}<br>
+                        Цена: ${nft.price} монет
+                    </div>
+                    <div class="nft-actions">
+                        <button onclick="event.stopPropagation(); buyNft('${nft.token_id}', ${nft.price})" 
+                                style="background:#38a169; color:white;">
+                            Купить
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeGiftMarketModal();
+        });
+    }
+
+    function closeGiftMarketModal() {
+        const modal = document.getElementById('gift-market-modal');
+        if (modal) modal.remove();
+    }
+
+    async function sellGift(giftId, maxQuantity) {
+        const quantity = prompt(`Сколько подарков продать? (Максимум: ${maxQuantity})`, "1");
+        if (!quantity || isNaN(quantity) || quantity <= 0 || quantity > maxQuantity) {
+            showNotification('Некорректное количество', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/sell_gift`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    gift_id: giftId,
+                    quantity: parseInt(quantity)
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                currentUser.coins = data.new_balance;
+                localStorage.setItem('vault_user', JSON.stringify(currentUser));
+                updateCoinsDisplay(data.new_balance);
+                closeInventoryModal();
+                openInventory();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка продажи:', error);
+            showNotification('Не удалось продать подарок', 'error');
+        }
+    }
+
+    async function upgradeGiftToNft(giftId) {
+        const priceStr = prompt('Введите цену NFT (в монетах):', '100');
+        if (!priceStr) return;
+        const price = parseInt(priceStr);
+        if (isNaN(price) || price <= 0) {
+            showNotification('Некорректная цена', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/nft/upgrade`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    gift_id: giftId,
+                    price: price
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification('Подарок апгрейжен в NFT!', 'success');
+                closeInventoryModal();
+                openInventory();
+                loadMarket();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (e) {
+            console.error('Ошибка апгрейда в NFT:', e);
+            showNotification('Ошибка сети при апгрейде подарка', 'error');
+        }
+    }
+
+    async function toggleNftProfileDisplay(tokenId, currentlyDisplayed) {
+        try {
+            const response = await fetch(`${API_URL}/api/toggle_nft_profile_display`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    token_id: tokenId
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                closeInventoryModal();
+                openInventory();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка toggleNftProfileDisplay:', error);
+            showNotification('Не удалось изменить отображение NFT', 'error');
+        }
+    }
+
+    async function toggleProfileDisplay(giftId, currentlyDisplayed) {
+        try {
+            const response = await fetch(`${API_URL}/api/toggle_profile_display`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser.id,
+                    gift_id: giftId
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                closeInventoryModal();
+                openInventory();
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка изменения отображения:', error);
+            showNotification('Не удалось изменить отображение подарка', 'error');
+        }
+    }
+
+    // --- АДМИН: СОЗДАНИЕ ПОДАРКОВ (ОБНОВЛЕНО) ---
+    
+    // Обработчик выбора файла
+    async function handleGiftFileSelect(input) {
+        const file = input.files[0];
+        const previewEl = document.getElementById('new-gift-preview');
+        const textInput = document.getElementById('new-gift-image');
+        
+        if (file) {
+            previewEl.innerHTML = '<span style="color:#718096">Обработка...</span>';
+            try {
+                // Сжимаем до 100x100 (достаточно для иконки)
+                const base64 = await resizeImage(file, 100, 100);
+                newGiftImageBase64 = base64;
+                previewEl.innerHTML = `<img src="${base64}" style="width: 50px; height: 50px; object-fit: contain;">`;
+                // Очищаем текстовое поле, так как используется файл
+                textInput.value = ''; 
+                textInput.disabled = true;
+                textInput.placeholder = "(Выбран файл)";
+            } catch (e) {
+                console.error(e);
+                previewEl.innerHTML = '<span style="color:red">Ошибка файла</span>';
+                newGiftImageBase64 = null;
+            }
+        } else {
+            newGiftImageBase64 = null;
+            previewEl.innerHTML = '';
+            textInput.disabled = false;
+            textInput.placeholder = "🎁 или URL";
+        }
+    }
+
+    async function openCreateGiftModal() {
+        newGiftImageBase64 = null; // Сброс
+        
+        const modal = document.createElement('div');
+        modal.id = 'create-gift-modal';
+        modal.style.cssText = `
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+        `;
+        
+        const html = `
+            <div style="background: white; padding: 25px; border-radius: 24px; max-width: 400px; width: 90%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Создать подарок</h3>
+                    <button onclick="closeCreateGiftModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
+                </div>
+                
+                <label>Название:</label>
+                <input type="text" id="new-gift-name" placeholder="Название подарка" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                
+                <label>Изображение (файл):</label>
+                <input type="file" id="new-gift-file" accept="image/*" onchange="handleGiftFileSelect(this)" style="width: 100%; margin-bottom: 5px;">
+                <div id="new-gift-preview" style="text-align: center; margin-bottom: 10px;"></div>
+                
+                <label>Или эмодзи/ссылка (текст):</label>
+                <input type="text" id="new-gift-image" placeholder="🎁 или URL" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                
+                <label>Цена:</label>
+                <input type="number" id="new-gift-price" placeholder="100" min="1" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                
+                <label>Количество (0 = неограничено):</label>
+                <input type="number" id="new-gift-quantity" placeholder="0" min="0" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                
+                <label style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <input type="checkbox" id="new-gift-rare" style="margin-right: 8px;">
+                    Редкий подарок ⚡
+                </label>
+                <label style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <input type="checkbox" id="new-gift-upgradeable" style="margin-right: 8px;">
+                    Можно апгрейдить в NFT
+                </label>
+                
+                <button onclick="createNewGift()" style="width: 100%; padding: 12px; background: #d69e2e; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Создать подарок
+                </button>
+            </div>`;
+        
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeCreateGiftModal();
+            }
+        });
+    }
+
+    function closeCreateGiftModal() {
+        const modal = document.getElementById('create-gift-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    async function createNewGift() {
+        const name = document.getElementById('new-gift-name').value;
+        // Берем либо загруженный файл, либо текст из поля
+        const image_url = newGiftImageBase64 || document.getElementById('new-gift-image').value;
+        const price = parseInt(document.getElementById('new-gift-price').value);
+        const quantity = parseInt(document.getElementById('new-gift-quantity').value) || 0;
+        const is_rare = document.getElementById('new-gift-rare').checked;
+        const upgradeable = document.getElementById('new-gift-upgradeable').checked;
+        
+        if (!name || !image_url || !price || price < 1) {
+            showNotification('Заполните все обязательные поля (название, картинка, цена)', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/admin/create_gift`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: currentUser.id,
+                    name: name,
+                    image_url: image_url,
+                    price: price,
+                    quantity: quantity === 0 ? -1 : quantity,
+                    is_rare: is_rare,
+                    upgradeable: upgradeable
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showNotification('Подарок успешно создан!', 'success');
+                closeCreateGiftModal();
+                await fetchAllGifts(); // Обновляем список локально
+            } else {
+                showNotification('Ошибка: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка создания подарка:', error);
+            showNotification('Не удалось создать подарок', 'error');
+        }
+    }
+
+    // --- INIT ---
+    document.getElementById('message-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    window.onload = () => {
+        // Убеждаемся что модальное окно звонка закрыто при загрузке
+        const callModal = document.getElementById('call-modal');
+        if (callModal) {
+            callModal.style.display = 'none';
+            callModal.style.setProperty('display', 'none', 'important');
+        }
+        
+        const storedUser = localStorage.getItem('vault_user');
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+            initializeApp();
+        } else {
+            document.getElementById('auth-view').style.display = 'block';
+        }
+
+        // Тема
+        const theme = getSetting('theme', 'dark');
+        const themeCheckbox = document.getElementById('setting-theme');
+        if (themeCheckbox) {
+            themeCheckbox.checked = theme === 'dark';
+        }
+        applyTheme();
+
+        // Инициализация настроек UI
+        const soundsCheckbox = document.getElementById('setting-sounds');
+        const compactCheckbox = document.getElementById('setting-compact');
+        const statusCheckbox = document.getElementById('setting-status');
+
+        if (soundsCheckbox) soundsCheckbox.checked = getSetting('sounds', true);
+        if (compactCheckbox) compactCheckbox.checked = getSetting('compact', false);
+        if (statusCheckbox) statusCheckbox.checked = getSetting('status', true);
+
+        if (themeCheckbox) {
+            themeCheckbox.addEventListener('change', (e) => {
+                setSetting('theme', e.target.checked ? 'dark' : 'light');
+                applyTheme();
+            });
+        }
+        if (soundsCheckbox) soundsCheckbox.addEventListener('change', (e) => setSetting('sounds', e.target.checked));
+        if (compactCheckbox) compactCheckbox.addEventListener('change', (e) => setSetting('compact', e.target.checked));
+        if (statusCheckbox) statusCheckbox.addEventListener('change', (e) => setSetting('status', e.target.checked));
+
+        // Разблокировка аудио на первом клике
+        document.body.addEventListener('click', () => {
+            try {
+                messageSound.play().then(() => {
+                    messageSound.pause();
+                    messageSound.currentTime = 0;
+                }).catch(() => {});
+            } catch (e) {}
+        }, { once: true });
+
+        document.getElementById('close-profile-modal').addEventListener('click', closeProfileModal);
+        document.getElementById('profile-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'profile-modal') {
+                closeProfileModal();
+            }
+        });
+
+        document.getElementById('close-gifts-modal').addEventListener('click', closeGiftsModal);
+        document.getElementById('gifts-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'gifts-modal') {
+                closeGiftsModal();
+            }
+        });
+
+        // Обработка закрытия модального окна звонка
+        document.getElementById('call-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'call-modal') {
+                endCall();
+            }
+        });
+
+        // Проверка входящих звонков каждые 2 секунды (только после авторизации)
+        // Запускается в initializeApp()
+    };
+
+    // --- VIDEO CALLS (WebRTC) ---
+    
+    let localStream = null;
+    let remoteStream = null;
+    let peerConnection = null;
+    let currentCallId = null;
+    let isCaller = false;
+    let isMuted = false;
+    let isVideoEnabled = true;
+    let callPollingInterval = null;
+
+    const configuration = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+
+    async function startCall() {
+        if (!activeChatPartnerId || activeChatIsChannel) {
+            showNotification('Выберите пользователя для звонка', 'error');
+            return;
+        }
+
+        if (currentCallId) {
+            showNotification('Уже идет звонок', 'error');
+            return;
+        }
+
+        // Проверяем поддержку getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showNotification('Ваш браузер не поддерживает видеозвонки', 'error');
+            return;
+        }
+
+        try {
+            // Для мобильных устройств используем более простые настройки
+            const constraints = {
+                video: false,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            };
+            
+            // Сначала получаем доступ только к микрофону (аудио)
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Видео выключено по умолчанию
+            isVideoEnabled = false;
+            document.getElementById('video-btn').style.background = '#ef4444';
+            document.getElementById('video-btn').innerHTML = '<i class="fas fa-video-slash"></i>';
+            
+            const localVideo = document.getElementById('local-video');
+            localVideo.srcObject = localStream;
+            localVideo.muted = true; // Важно для автоплея
+            localVideo.setAttribute('playsinline', 'true'); // Для мобильных устройств
+            localVideo.setAttribute('webkit-playsinline', 'true'); // Для iOS
+            const callModal = document.getElementById('call-modal');
+            callModal.style.display = 'flex';
+            callModal.style.setProperty('display', 'flex', 'important');
+            document.getElementById('remote-user-name').textContent = activeChatPartnerName || activeChatPartnerId;
+            document.getElementById('call-status').textContent = 'Звонок...';
+            
+            isCaller = true;
+            currentCallId = `${currentUser.id}_${activeChatPartnerId}`;
+            
+            // Создаем peer connection
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Добавляем только аудио трек (видео добавим позже если включим)
+            localStream.getAudioTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Обработка удаленного потока
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                const remoteVideo = document.getElementById('remote-video');
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.setAttribute('playsinline', 'true'); // Для мобильных устройств
+                remoteVideo.setAttribute('webkit-playsinline', 'true'); // Для iOS
+                remoteVideo.play().catch(e => console.error('Ошибка воспроизведения удаленного видео:', e));
+                document.getElementById('call-status').textContent = 'Подключено';
+            };
+            
+            // Обработка ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendIceCandidate(event.candidate);
+                }
+            };
+            
+            // Создаем offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            
+            // Отправляем offer на сервер
+            const response = await fetch(`${API_URL}/api/calls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'offer',
+                    caller_id: currentUser.id,
+                    callee_id: activeChatPartnerId,
+                    offer: offer
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                // Начинаем polling для получения answer и ICE candidates
+                startCallPolling();
+            } else {
+                showNotification('Ошибка начала звонка: ' + data.message, 'error');
+                endCall();
+            }
+        } catch (error) {
+            console.error('Ошибка начала звонка:', error);
+            let errorMsg = 'Не удалось получить доступ к микрофону';
+            
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMsg = 'Разрешите доступ к микрофону в настройках браузера. На мобильных устройствах убедитесь, что сайт открыт по HTTPS.';
+            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                errorMsg = 'Микрофон не найден. Проверьте подключение устройства.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                errorMsg = 'Микрофон занят другим приложением. Закройте другие приложения, использующие микрофон.';
+            } else if (error.name === 'OverconstrainedError') {
+                errorMsg = 'Микрофон не поддерживает требуемые настройки.';
+            } else if (error.name === 'TypeError') {
+                errorMsg = 'Браузер не поддерживает видеозвонки. Используйте современный браузер.';
+            }
+            
+            showNotification(errorMsg, 'error');
+            endCall();
+        }
+    }
+
+    async function checkIncomingCalls() {
+        // Строгие проверки перед проверкой звонков
+        if (!currentUser || !currentUser.id) {
+            return; // Пользователь не авторизован
+        }
+        
+        if (currentCallId) {
+            return; // Уже в звонке
+        }
+        
+        // Проверяем что приложение открыто и пользователь авторизован
+        const appEl = document.getElementById('app');
+        const authEl = document.getElementById('auth-view');
+        if (!appEl || appEl.style.display === 'none' || 
+            (authEl && authEl.style.display !== 'none')) {
+            return; // Приложение не открыто или показывается экран авторизации
+        }
+        
+        // Проверяем что модальное окно звонка закрыто
+        const callModal = document.getElementById('call-modal');
+        if (callModal && callModal.style.display !== 'none') {
+            return; // Модальное окно уже открыто
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/calls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'check_incoming',
+                    user_id: currentUser.id
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success' && data.calls && data.calls.length > 0) {
+                const call = data.calls[0];
+                // Дополнительная проверка перед показом звонка
+                if (!currentCallId && callModal && callModal.style.display === 'none') {
+                    handleIncomingCall(call.call_id, call.caller_id, call.offer);
+                }
+            }
+        } catch (error) {
+            // Тихая ошибка - не показываем пользователю
+            console.error('Ошибка проверки входящих звонков:', error);
+        }
+    }
+
+    async function handleIncomingCall(callId, callerId, offer) {
+        // Проверяем, что мы не в другом звонке
+        if (currentCallId) {
+            return;
+        }
+        
+        // Показываем уведомление о входящем звонке
+        const accept = confirm(`Входящий звонок от @${callerId}\n\nПринять?`);
+        
+        if (!accept) {
+            // Отклоняем звонок
+            try {
+                await fetch(`${API_URL}/api/calls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'end_call',
+                        call_id: callId
+                    })
+                });
+            } catch (e) {
+                console.error('Ошибка отклонения звонка:', e);
+            }
+            return;
+        }
+        
+        // Проверяем поддержку getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showNotification('Ваш браузер не поддерживает видеозвонки', 'error');
+            return;
+        }
+        
+        try {
+            // Для мобильных устройств используем более простые настройки
+            const constraints = {
+                video: false,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            };
+            
+            // Получаем доступ только к микрофону (видео выключено по умолчанию)
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Видео выключено по умолчанию
+            isVideoEnabled = false;
+            document.getElementById('video-btn').style.background = '#ef4444';
+            document.getElementById('video-btn').innerHTML = '<i class="fas fa-video-slash"></i>';
+            
+            const localVideo = document.getElementById('local-video');
+            localVideo.srcObject = localStream;
+            localVideo.muted = true; // Важно для автоплея
+            localVideo.setAttribute('playsinline', 'true'); // Для мобильных устройств
+            localVideo.setAttribute('webkit-playsinline', 'true'); // Для iOS
+            const callModal = document.getElementById('call-modal');
+            callModal.style.display = 'flex';
+            callModal.style.setProperty('display', 'flex', 'important');
+            
+            // Получаем имя звонящего
+            try {
+                const userResp = await fetch(`${API_URL}/api/user/${callerId}`);
+                const userData = await userResp.json();
+                if (userData.status === 'success') {
+                    document.getElementById('remote-user-name').textContent = userData.user.displayName || callerId;
+                } else {
+                    document.getElementById('remote-user-name').textContent = '@' + callerId;
+                }
+            } catch (e) {
+                document.getElementById('remote-user-name').textContent = '@' + callerId;
+            }
+            
+            document.getElementById('call-status').textContent = 'Подключение...';
+            
+            isCaller = false;
+            currentCallId = callId;
+            
+            // Создаем peer connection
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Добавляем только аудио трек
+            localStream.getAudioTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Обработка удаленного потока
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                const remoteVideo = document.getElementById('remote-video');
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.setAttribute('playsinline', 'true'); // Для мобильных устройств
+                remoteVideo.setAttribute('webkit-playsinline', 'true'); // Для iOS
+                remoteVideo.play().catch(e => console.error('Ошибка воспроизведения удаленного видео:', e));
+                document.getElementById('call-status').textContent = 'Подключено';
+            };
+            
+            // Обработка ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendIceCandidate(event.candidate);
+                }
+            };
+            
+            // Устанавливаем удаленный offer
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            
+            // Создаем answer
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            // Отправляем answer на сервер
+            const response = await fetch(`${API_URL}/api/calls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'answer',
+                    call_id: callId,
+                    answer: answer
+                })
+            });
+            
+            if (response.ok) {
+                // Начинаем polling для получения ICE candidates
+                startCallPolling();
+            } else {
+                showNotification('Ошибка принятия звонка', 'error');
+                endCall();
+            }
+        } catch (error) {
+            console.error('Ошибка принятия звонка:', error);
+            let errorMsg = 'Не удалось получить доступ к микрофону';
+            
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMsg = 'Разрешите доступ к микрофону в настройках браузера. На мобильных устройствах убедитесь, что сайт открыт по HTTPS.';
+            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                errorMsg = 'Микрофон не найден. Проверьте подключение устройства.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                errorMsg = 'Микрофон занят другим приложением. Закройте другие приложения, использующие микрофон.';
+            } else if (error.name === 'OverconstrainedError') {
+                errorMsg = 'Микрофон не поддерживает требуемые настройки.';
+            } else if (error.name === 'TypeError') {
+                errorMsg = 'Браузер не поддерживает видеозвонки. Используйте современный браузер.';
+            }
+            
+            showNotification(errorMsg, 'error');
+            endCall();
+        }
+    }
+
+    function startCallPolling() {
+        if (callPollingInterval) clearInterval(callPollingInterval);
+        
+        callPollingInterval = setInterval(async () => {
+            if (!currentCallId) {
+                clearInterval(callPollingInterval);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/calls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'get_call',
+                        call_id: currentCallId,
+                        user_id: currentUser.id
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success' && data.call) {
+                    const call = data.call;
+                    
+                    // Обрабатываем answer (для инициатора)
+                    if (isCaller && call.answer && peerConnection.remoteDescription === null) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(call.answer));
+                    }
+                    
+                    // Обрабатываем offer (для получателя - уже обработан, но на всякий случай)
+                    if (!isCaller && call.offer && peerConnection.remoteDescription === null) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(call.offer));
+                    }
+                    
+                    // Обрабатываем ICE candidates
+                    if (call.ice_candidates && call.ice_candidates.length > 0) {
+                        for (const candidate of call.ice_candidates) {
+                            try {
+                                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                            } catch (e) {
+                                console.error('Ошибка добавления ICE candidate:', e);
+                            }
+                        }
+                    }
+                    
+                    // Проверяем статус звонка
+                    if (call.status === 'ended') {
+                        endCall();
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка polling звонка:', error);
+            }
+        }, 1000); // Проверяем каждую секунду
+    }
+
+    async function sendIceCandidate(candidate) {
+        if (!currentCallId) return;
+        
+        try {
+            await fetch(`${API_URL}/api/calls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'ice_candidate',
+                    call_id: currentCallId,
+                    user_id: currentUser.id,
+                    candidate: candidate
+                })
+            });
+        } catch (error) {
+            console.error('Ошибка отправки ICE candidate:', error);
+        }
+    }
+
+    function toggleMute() {
+        if (!localStream) return;
+        
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !isMuted;
+        });
+        
+        const btn = document.getElementById('mute-btn');
+        if (isMuted) {
+            btn.style.background = '#ef4444';
+            btn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+        } else {
+            btn.style.background = '#4f46e5';
+            btn.innerHTML = '<i class="fas fa-microphone"></i>';
+        }
+    }
+
+    async function toggleVideo() {
+        if (!localStream) return;
+        
+        const btn = document.getElementById('video-btn');
+        
+        if (!isVideoEnabled) {
+            // Включаем видео - запрашиваем доступ к камере
+            try {
+                // Для мобильных устройств используем более простые настройки
+                const videoConstraints = {
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user' // Фронтальная камера
+                    },
+                    audio: false
+                };
+                
+                const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+                
+                // Добавляем видео трек к существующему потоку
+                videoStream.getVideoTracks().forEach(track => {
+                    localStream.addTrack(track);
+                    // Добавляем трек в peer connection
+                    if (peerConnection) {
+                        peerConnection.addTrack(track, localStream);
+                    }
+                });
+                
+                // Обновляем видео элемент
+                document.getElementById('local-video').srcObject = localStream;
+                
+                isVideoEnabled = true;
+                btn.style.background = '#4f46e5';
+                btn.innerHTML = '<i class="fas fa-video"></i>';
+            } catch (error) {
+                console.error('Ошибка включения видео:', error);
+                let errorMsg = 'Не удалось получить доступ к камере';
+                
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMsg = 'Разрешите доступ к камере в настройках браузера. На мобильных устройствах убедитесь, что сайт открыт по HTTPS.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMsg = 'Камера не найдена. Проверьте подключение устройства.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMsg = 'Камера занята другим приложением. Закройте другие приложения, использующие камеру.';
+                } else if (error.name === 'OverconstrainedError') {
+                    errorMsg = 'Камера не поддерживает требуемые настройки.';
+                }
+                
+                showNotification(errorMsg, 'error');
+            }
+        } else {
+            // Выключаем видео
+            localStream.getVideoTracks().forEach(track => {
+                track.stop();
+                localStream.removeTrack(track);
+                // Удаляем трек из peer connection
+                if (peerConnection) {
+                    const sender = peerConnection.getSenders().find(s => s.track === track);
+                    if (sender) {
+                        peerConnection.removeTrack(sender);
+                    }
+                }
+            });
+            
+            isVideoEnabled = false;
+            btn.style.background = '#ef4444';
+            btn.innerHTML = '<i class="fas fa-video-slash"></i>';
+            
+            // Обновляем видео элемент
+            document.getElementById('local-video').srcObject = localStream;
+        }
+    }
+
+    async function endCall() {
+        // Останавливаем все потоки
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        
+        if (remoteStream) {
+            remoteStream.getTracks().forEach(track => track.stop());
+            remoteStream = null;
+        }
+        
+        // Закрываем peer connection
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        
+        // Очищаем видео элементы
+        document.getElementById('local-video').srcObject = null;
+        document.getElementById('remote-video').srcObject = null;
+        
+        // Скрываем модальное окно
+        const callModal = document.getElementById('call-modal');
+        callModal.style.display = 'none';
+        callModal.style.setProperty('display', 'none', 'important');
+        
+        // Уведомляем сервер о завершении звонка
+        if (currentCallId) {
+            try {
+                await fetch(`${API_URL}/api/calls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'end_call',
+                        call_id: currentCallId
+                    })
+                });
+            } catch (error) {
+                console.error('Ошибка завершения звонка:', error);
+            }
+        }
+        
+        // Останавливаем polling
+        if (callPollingInterval) {
+            clearInterval(callPollingInterval);
+            callPollingInterval = null;
+        }
+        
+        currentCallId = null;
+        isCaller = false;
+        isMuted = false;
+        isVideoEnabled = true;
+        
+        // Сбрасываем кнопки
+        document.getElementById('mute-btn').style.background = '#4f46e5';
+        document.getElementById('mute-btn').innerHTML = '<i class="fas fa-microphone"></i>';
+        document.getElementById('video-btn').style.background = '#4f46e5';
+        document.getElementById('video-btn').innerHTML = '<i class="fas fa-video"></i>';
+    }
+</script>
+</body>
+</html>
